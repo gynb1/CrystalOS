@@ -86,6 +86,17 @@
       tags: [source.cell_setting, source.crystal_system, source.space_group_name, source.chem_formula_sum].filter(Boolean),
       doi: source.doi || "",
       volume: toNumber(source.volume || source.cell_volume),
+      crystal_system: source.cell_setting || source.crystal_system || "",
+      wyckoff: Array.isArray(source.wyckoff) ? source.wyckoff : Array.from(new Set((source.atoms || []).map(function (atom) { return atom.wyckoff_symbol; }).filter(Boolean))),
+      disorder: Array.isArray(source.disorder) ? source.disorder : [],
+      vacancy_pct: toNumber(source.vacancy_pct),
+      min_occupancy: toNumber(source.min_occupancy),
+      split_distance: toNumber(source.split_distance),
+      source_group: source.source_group || "CrystalSeek",
+      data_type: source.data_type || "experimental",
+      has_adp: source.has_adp === true,
+      superstructure: Boolean(source.superstructure),
+      broad_peak: Boolean(source.broad_peak),
       raw: source
     };
   }

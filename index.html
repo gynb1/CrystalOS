@@ -357,11 +357,95 @@
 
           <div class="tab-panels">
             <section class="tab-panel active" data-panel="database" role="tabpanel">
-              <div class="panel-grid two">
-                <div class="panel-card">
+              <div class="db-workbench">
+                <aside class="panel-card db-facets">
+                  <div class="card-head">
+                    <div><span class="card-kicker">FACETS</span><h3>筛选</h3></div>
+                    <button class="btn btn-ghost btn-sm" type="button" id="resetDbFilters">重置</button>
+                  </div>
+                  <div class="facet-stack">
+                    <details class="facet-group" open>
+                      <summary>组成与结构</summary>
+                      <div class="facet-body">
+                        <label class="facet-label">必须包含元素<input id="fIncludeElements" type="text" placeholder="Li, P" autocomplete="off"></label>
+                        <label class="facet-label">排除元素<input id="fExcludeElements" type="text" placeholder="Fe, Co, Ni" autocomplete="off"></label>
+                        <label class="facet-label">空间群<input id="fSpaceGroup" type="text" placeholder="F-43m" autocomplete="off"></label>
+                        <label class="facet-label">晶系
+                          <select id="fCrystalSystem">
+                            <option value="">全部</option>
+                            <option value="cubic">立方</option>
+                            <option value="hexagonal">六方</option>
+                            <option value="trigonal">三方</option>
+                            <option value="tetragonal">四方</option>
+                            <option value="orthorhombic">正交</option>
+                            <option value="monoclinic">单斜</option>
+                            <option value="triclinic">三斜</option>
+                          </select>
+                        </label>
+                        <div class="facet-row">
+                          <label class="facet-label">体积 ≥ Å³<input id="fVolumeMin" type="number" min="0" placeholder="500"></label>
+                          <label class="facet-label">体积 ≤ Å³<input id="fVolumeMax" type="number" min="0" placeholder="1000"></label>
+                        </div>
+                        <label class="facet-label">Wyckoff 位点<input id="fWyckoff" type="text" placeholder="4a, 8c" autocomplete="off"></label>
+                      </div>
+                    </details>
+                    <details class="facet-group" open>
+                      <summary>无序特征</summary>
+                      <div class="facet-body">
+                        <div class="facet-checks">
+                          <label class="facet-check"><input class="facet-disorder" type="checkbox" value="O"><span>O 有序</span></label>
+                          <label class="facet-check"><input class="facet-disorder" type="checkbox" value="S"><span>S 置换</span></label>
+                          <label class="facet-check"><input class="facet-disorder" type="checkbox" value="P"><span>P 位置分裂</span></label>
+                          <label class="facet-check"><input class="facet-disorder" type="checkbox" value="V"><span>V 空位</span></label>
+                          <label class="facet-check"><input class="facet-disorder" type="checkbox" value="SVP"><span>SVP 复合</span></label>
+                        </div>
+                        <label class="facet-label">空位浓度 ≥ %<input id="fVacancyMin" type="number" min="0" max="100" placeholder="15"></label>
+                        <label class="facet-label">最小占位率 ≤<input id="fOccupancyMax" type="number" min="0" max="1" step="0.05" placeholder="0.5"></label>
+                        <label class="facet-check"><input id="fSplitDistance" type="checkbox"><span>存在 0.3–0.8 Å 分裂原子对</span></label>
+                      </div>
+                    </details>
+                    <details class="facet-group">
+                      <summary>数据来源与质量</summary>
+                      <div class="facet-body">
+                        <div class="facet-checks">
+                          <label class="facet-check"><input class="facet-source" type="checkbox" value="CrystalSeek"><span>CrystalSeek</span></label>
+                          <label class="facet-check"><input class="facet-source" type="checkbox" value="ICSD"><span>ICSD</span></label>
+                          <label class="facet-check"><input class="facet-source" type="checkbox" value="COD"><span>COD</span></label>
+                          <label class="facet-check"><input class="facet-source" type="checkbox" value="MP"><span>MP</span></label>
+                          <label class="facet-check"><input class="facet-source" type="checkbox" value="Self-built"><span>自建</span></label>
+                        </div>
+                        <div class="facet-checks">
+                          <label class="facet-check"><input class="facet-datatype" type="checkbox" value="experimental"><span>实验实测</span></label>
+                          <label class="facet-check"><input class="facet-datatype" type="checkbox" value="computational"><span>计算 / DFT</span></label>
+                        </div>
+                        <label class="facet-check"><input id="fHasAdp" type="checkbox"><span>含完整 ADP</span></label>
+                      </div>
+                    </details>
+                    <details class="facet-group">
+                      <summary>图谱与相似度</summary>
+                      <div class="facet-body">
+                        <label class="facet-label" for="dbSpectrumFile">上传 PXRD 图谱</label>
+                        <input id="dbSpectrumFile" class="facet-file" type="file" accept=".xy,.csv,.txt">
+                        <small class="facet-hint" id="dbSpectrumName">未选择文件</small>
+                        <div class="facet-checks">
+                          <label class="facet-check"><input class="facet-spectral" type="checkbox" value="superstructure"><span>含超结构弱峰</span></label>
+                          <label class="facet-check"><input class="facet-spectral" type="checkbox" value="broad"><span>峰展宽 FWHM &gt; 0.5°</span></label>
+                        </div>
+                        <button class="btn btn-ghost btn-sm full" type="button" id="runSpectrumSearch">运行图谱相似度检索</button>
+                        <div class="facet-hint">Mock 引擎：余弦相似度 · Top-5</div>
+                      </div>
+                    </details>
+                  </div>
+                  <button class="btn btn-primary full" type="button" id="applyDbFilters">应用筛选</button>
+                  <div class="facet-hint" id="dbFilterHint">筛选作用于当前返回结果；完整字段过滤需后端支持。</div>
+                </aside>
+                <div class="panel-card db-results-card">
                   <div class="card-head">
                     <div><span class="card-kicker">CRYSTALDB</span><h3>结构检索</h3></div>
-                    <span class="badge badge-live">Mock</span>
+                    <div class="db-head-badges">
+                      <span class="badge badge-count" id="dbFilterCount">0 个筛选</span>
+                      <span class="badge badge-live" id="dbModeBadge">CrystalSeek</span>
+                    </div>
                   </div>
                   <form class="inline-form" id="dbSearchForm">
                     <div class="input-wrap">
@@ -375,6 +459,7 @@
                     </select>
                     <button class="btn btn-primary" type="submit">检索</button>
                   </form>
+                  <div class="db-result-meta" id="dbResultMeta">等待检索…</div>
                   <div class="result-list" id="dbResults"></div>
                   <div class="db-pagination" id="dbPagination"></div>
                   <div class="panel-note" id="dbSourceNote"><span class="status-dot beta"></span>正在连接 CrystalSeek 数据库…</div>

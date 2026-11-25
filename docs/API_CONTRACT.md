@@ -642,3 +642,75 @@ window.CrystalConfig = {
 ```
 
 `publicBaseUrl` 为空或请求失败时，数据库模块会回退到 Mock 数据，避免公开页面直接报错。
+
+---
+
+## 13. 分面检索扩展（v0.2 草案）
+
+前端数据库模块已支持分面筛选。建议后端在 `/api/structures/search` 请求中增加 `filters` 字段：
+
+```json
+{
+  "query": "Li6PS5Cl",
+  "filter": "all",
+  "page": 1,
+  "pageSize": 10,
+  "filters": {
+    "includeElements": ["Li", "P"],
+    "excludeElements": ["Fe", "Co", "Ni"],
+    "spaceGroup": "F-43m",
+    "crystalSystem": "cubic",
+    "volumeMin": 500,
+    "volumeMax": 1000,
+    "wyckoff": ["4a", "8c"],
+    "disorder": ["V", "SVP"],
+    "vacancyMin": 15,
+    "occupancyMax": 0.5,
+    "splitDistance": true,
+    "sources": ["CrystalSeek", "ICSD"],
+    "dataTypes": ["experimental"],
+    "hasAdp": true,
+    "spectral": ["superstructure", "broad"]
+  }
+}
+```
+
+### 13.1 图谱相似度检索
+
+建议新增：
+
+`POST /api/structures/similarity`
+
+请求：
+
+```json
+{
+  "two_theta": [10.0, 10.1, 10.2],
+  "intensity": [0.1, 0.12, 0.15],
+  "top_k": 10,
+  "filters": {
+    "disorder": ["V"],
+    "sources": ["ICSD"]
+  }
+}
+```
+
+响应：
+
+```json
+{
+  "ok": true,
+  "data": {
+    "matches": [
+      {
+        "structure_id": "st_xxx",
+        "formula": "Li7La3Zr2O12",
+        "similarity": 0.96,
+        "method": "cosine"
+      }
+    ]
+  }
+}
+```
+
+当前 Demo 使用前端 Mock 余弦相似度引擎；真实版本建议后端支持余弦相似度与 DTW，并返回可追溯的匹配依据。

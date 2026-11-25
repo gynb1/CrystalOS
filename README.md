@@ -47,6 +47,18 @@ CSP/DNG、表征、精修、合成和 Agent 目前仍是 Mock 行为；数据库
 - `CrystalDB` 卡片的“选择数据库”：外部数据库导航，点击后在新标签页打开对应数据库官网。
 - 工作台的“当前数据库”：网页内实际检索使用的数据源，目前支持 `Mock` 与 `CrystalSeek`。
 
+## 结构检索能力
+
+数据库模块已扩展为分面检索（Faceted Search）：
+
+- 组成与结构：元素包含/排除、空间群、晶系、体积范围、Wyckoff 位点
+- 无序特征：O/S/P/V/SVP、空位浓度、占位率、分裂距离
+- 数据来源与质量：CrystalSeek/ICSD/COD/MP/自建、实验/计算、ADP
+- 图谱与相似度：上传 PXRD（.xy/.csv/.txt），余弦相似度 Top-5
+- 图谱特征：超结构弱峰、峰展宽
+
+说明：当前 Mock 数据支持完整示例筛选；真实 CrystalSeek 的高级字段尚未在服务端开放，因此筛选作用于当前页返回结果。后续后端支持这些字段后，可把筛选条件下推到 `/api/structures/search`。
+
 前端交互不变，后端按 `docs/API_CONTRACT.md` 和 `api/openapi.yaml` 实现即可。
 
 ## 目录

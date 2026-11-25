@@ -15,6 +15,9 @@
     dbPage: 1,
     dbPageSize: 10,
     dbTotal: 0,
+    dbItems: [],
+    dbFilters: null,
+    dbSimilarity: false,
     selectionToken: 0
   };
 
@@ -85,6 +88,10 @@
       directoryMeta.textContent = source === "crystalseek"
         ? (meta && meta.fallback ? "CrystalSeek · fallback" : "CrystalSeek · 已接入")
         : "CrystalOS Demo · 内置";
+    }
+    const modeBadge = $("#dbModeBadge");
+    if (modeBadge) {
+      modeBadge.textContent = source === "crystalseek" ? (meta && meta.fallback ? "fallback" : "CrystalSeek") : "Mock";
     }
   }
 
@@ -350,16 +357,273 @@
     }).join("");
   }
 
+  function parseElementList(value) {
+    return String(value || "").split(/[,;\s]+/).map(function (item) { return item.trim(); }).filter(Boolean);
+  }
+
+  function numberOrNull(value) {
+    if (value === undefined || value === null || String(value).trim() === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function checkedValues(selector) {
+    return $$(selector).filter(function (input) { return input.checked; }).map(function (input) { return input.value; });
+  }
+
+  function formulaHasElement(formula, element) {
+    const pattern = new RegExp(String(element).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![a-z])", "i");
+    return pattern.test(String(formula || ""));
+  }
+
+  function readDbFilters() {
+    return {
+      includeElements: parseElementList($("#fIncludeElements") ? $("#fIncludeElements").value : ""),
+      excludeElements: parseElementList($("#fExcludeElements") ? $("#fExcludeElements").value : ""),
+      spaceGroup: String($("#fSpaceGroup") ? $("#fSpaceGroup").value : "").trim().toLowerCase(),
+      crystalSystem: $("#fCrystalSystem") ? $("#fCrystalSystem").value : "",
+      volumeMin: numberOrNull($("#fVolumeMin") ? $("#fVolumeMin").value : ""),
+      volumeMax: numberOrNull($("#fVolumeMax") ? $("#fVolumeMax").value : ""),
+      wyckoff: parseElementList($("#fWyckoff") ? $("#fWyckoff").value : "").map(function (item) { return item.toLowerCase(); }),
+      disorder: checkedValues(".facet-disorder"),
+      vacancyMin: numberOrNull($("#fVacancyMin") ? $("#fVacancyMin").value : ""),
+      occupancyMax: numberOrNull($("#fOccupancyMax") ? $("#fOccupancyMax").value : ""),
+      splitDistance: Boolean($("#fSplitDistance") && $("#fSplitDistance").checked),
+      sources: checkedValues(".facet-source"),
+      dataTypes: checkedValues(".facet-datatype"),
+      hasAdp: Boolean($("#fHasAdp") && $("#fHasAdp").checked),
+      spectral: checkedValues(".facet-spectral")
+    };
+  }
+
+  function countActiveFilters(filters) {
+    if (!filters) return 0;
+    let count = 0;
+    if (filters.includeElements.length) count += 1;
+    if (filters.excludeElements.length) count += 1;
+    if (filters.spaceGroup) count += 1;
+    if (filters.crystalSystem) count += 1;
+    if (filters.volumeMin !== null || filters.volumeMax !== null) count += 1;
+    if (filters.wyckoff.length) count += 1;
+    count += filters.disorder.length;
+    if (filters.vacancyMin !== null) count += 1;
+    if (filters.occupancyMax !== null) count += 1;
+    if (filters.splitDistance) count += 1;
+    count += filters.sources.length;
+    count += filters.dataTypes.length;
+    if (filters.hasAdp) count += 1;
+    count += filters.spectral.length;
+    return count;
+  }
+
+  function matchesDbFilters(item, filters) {
+    const formula = String(item.formula || "");
+    if (filters.includeElements.length && !filters.includeElements.every(function (element) { return formulaHasElement(formula, element); })) return false;
+    if (filters.excludeElements.some(function (element) { return formulaHasElement(formula, element); })) return false;
+
+    const group = String(item.space_group || "").toLowerCase().replace(/\s+/g, "");
+    if (filters.spaceGroup && group.indexOf(filters.spaceGroup.replace(/\s+/g, "")) === -1) return false;
+
+    const system = String(item.crystal_system || item.raw && item.raw.cell_setting || "").toLowerCase();
+    if (filters.crystalSystem && system !== filters.crystalSystem) return false;
+
+    if (filters.volumeMin !== null && (item.volume === null || item.volume === undefined || item.volume < filters.volumeMin)) return false;
+    if (filters.volumeMax !== null && (item.volume === null || item.volume === undefined || item.volume > filters.volumeMax)) return false;
+
+    if (filters.wyckoff.length) {
+      const itemWyckoff = (item.wyckoff || []).map(function (value) { return String(value).toLowerCase(); });
+      if (!filters.wyckoff.every(function (value) { return itemWyckoff.indexOf(value) !== -1; })) return false;
+    }
+
+    if (filters.disorder.length) {
+      const disorder = item.disorder || [];
+      const matches = filters.disorder.some(function (type) {
+        if (type === "SVP") return disorder.length >= 2;
+        return disorder.indexOf(type) !== -1;
+      });
+      if (!matches) return false;
+    }
+
+    if (filters.vacancyMin !== null && (item.vacancy_pct === null || item.vacancy_pct === undefined || item.vacancy_pct < filters.vacancyMin)) return false;
+    if (filters.occupancyMax !== null && (item.min_occupancy === null || item.min_occupancy === undefined || item.min_occupancy > filters.occupancyMax)) return false;
+    if (filters.splitDistance && !(item.split_distance !== null && item.split_distance !== undefined && item.split_distance >= 0.3 && item.split_distance <= 0.8)) return false;
+
+    if (filters.sources.length && filters.sources.indexOf(item.source_group) === -1) return false;
+    if (filters.dataTypes.length && filters.dataTypes.indexOf(item.data_type) === -1) return false;
+    if (filters.hasAdp && item.has_adp !== true) return false;
+
+    if (filters.spectral.indexOf("superstructure") !== -1 && item.superstructure !== true) return false;
+    if (filters.spectral.indexOf("broad") !== -1 && item.broad_peak !== true) return false;
+    return true;
+  }
+
+  function filterDbItems(items, filters) {
+    return items.filter(function (item) { return matchesDbFilters(item, filters); });
+  }
+
+  function renderDbFilterSummary(filtered) {
+    const filters = state.dbFilters || readDbFilters();
+    const active = countActiveFilters(filters);
+    const countBadge = $("#dbFilterCount");
+    if (countBadge) countBadge.textContent = active + " 个筛选";
+    const hint = $("#dbFilterHint");
+    if (hint) {
+      hint.textContent = currentSource() === "crystalseek"
+        ? "CrystalSeek 高级字段暂未开放；当前筛选作用于本页返回结果。"
+        : "Mock 支持完整示例筛选；真实后端可在服务端实现同字段。";
+    }
+    const meta = $("#dbResultMeta");
+    if (meta) {
+      const mode = state.dbSimilarity ? "图谱相似度 Top-" + filtered.length : "当前页返回 " + state.dbItems.length + " 条";
+      const total = state.dbTotal ? " · 数据库共 " + state.dbTotal + " 条" : "";
+      meta.textContent = mode + " · 筛选后 " + filtered.length + " 条" + total;
+    }
+  }
+
+  function applyDbFiltersToResults(selectFirst) {
+    const filters = state.dbFilters || readDbFilters();
+    const filtered = filterDbItems(state.dbItems, filters);
+    state.dbFilteredItems = filtered;
+    renderDbResults(filtered);
+    renderDbFilterSummary(filtered);
+    if (selectFirst && filtered.length) {
+      const current = state.selectedStructure;
+      if (!current || !filtered.some(function (item) { return item.id === current.id; })) {
+        selectStructure(filtered[0], { silent: true });
+      }
+    }
+    return filtered;
+  }
+
+  function applyDbFilters() {
+    state.dbFilters = readDbFilters();
+    state.dbSimilarity = false;
+    applyDbFiltersToResults(true);
+  }
+
+  function resetDbFilters() {
+    ["fIncludeElements", "fExcludeElements", "fSpaceGroup", "fWyckoff", "fVolumeMin", "fVolumeMax", "fVacancyMin", "fOccupancyMax"].forEach(function (id) {
+      const node = $("#" + id);
+      if (node) node.value = "";
+    });
+    const system = $("#fCrystalSystem");
+    if (system) system.value = "";
+    $$(".facet-disorder, .facet-source, .facet-datatype, .facet-spectral").forEach(function (input) { input.checked = false; });
+    ["fSplitDistance", "fHasAdp"].forEach(function (id) {
+      const node = $("#" + id);
+      if (node) node.checked = false;
+    });
+    const file = $("#dbSpectrumFile");
+    if (file) file.value = "";
+    const name = $("#dbSpectrumName");
+    if (name) name.textContent = "未选择文件";
+    state.dbSimilarity = false;
+    state.dbFilters = readDbFilters();
+    applyDbFiltersToResults(true);
+  }
+
+  function parseSpectrumText(text) {
+    const rows = [];
+    String(text || "").split(/\r?\n/).forEach(function (line, index) {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      if (index === 0 && /theta|intensity|2theta/i.test(trimmed)) return;
+      const parts = trimmed.split(/[\s,;]+/).filter(Boolean);
+      const x = Number(parts[0]);
+      const y = Number(parts[1]);
+      if (Number.isFinite(x) && Number.isFinite(y)) rows.push({ x: x, y: y });
+    });
+    rows.sort(function (a, b) { return a.x - b.x; });
+    return rows.length > 5 ? rows : null;
+  }
+
+  function resampleSpectrum(rows, start, end, step) {
+    const grid = [];
+    for (let x = start; x <= end; x += step) grid.push(Number(x.toFixed(2)));
+    const values = grid.map(function (x) {
+      let left = rows[0];
+      let right = rows[rows.length - 1];
+      for (let index = 0; index < rows.length; index += 1) {
+        if (rows[index].x <= x) left = rows[index];
+        if (rows[index].x >= x) { right = rows[index]; break; }
+      }
+      if (left.x === right.x) return left.y;
+      const ratio = (x - left.x) / (right.x - left.x);
+      return left.y + (right.y - left.y) * ratio;
+    });
+    const max = Math.max.apply(null, values.concat([1]));
+    return values.map(function (value) { return value / max; });
+  }
+
+  function cosineSimilarity(a, b) {
+    let dot = 0;
+    let na = 0;
+    let nb = 0;
+    for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+      dot += a[index] * b[index];
+      na += a[index] * a[index];
+      nb += b[index] * b[index];
+    }
+    if (!na || !nb) return 0;
+    return dot / Math.sqrt(na * nb);
+  }
+
+  function runSpectrumSearch() {
+    const input = $("#dbSpectrumFile");
+    const file = input && input.files ? input.files[0] : null;
+    if (!file) {
+      toast("No spectrum", "请先选择 .xy、.csv 或 .txt 图谱文件。");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function () {
+      const rows = parseSpectrumText(reader.result);
+      if (!rows) {
+        toast("Parse failed", "没有解析到两列 2θ / intensity 数据。");
+        return;
+      }
+      let query;
+      if (rows.length < 80) {
+        const peaks = rows.map(function (row) { return { x: row.x, intensity: row.y, hkl: "" }; });
+        const generated = window.CrystalData.makePattern(peaks, { start: 5, end: 75, step: 0.1, noise: 0 });
+        query = resampleSpectrum(generated.x.map(function (x, index) { return { x: x, y: generated.calc[index] }; }), 5, 75, 0.2);
+      } else {
+        query = resampleSpectrum(rows, 5, 75, 0.2);
+      }
+      const scored = window.CrystalData.structures.map(function (structure) {
+        const pattern = window.CrystalData.makePattern(structure.peaks, { start: 5, end: 75, step: 0.1, noise: 0.001 });
+        const reference = resampleSpectrum(pattern.x.map(function (x, index) { return { x: x, y: pattern.calc[index] }; }), 5, 75, 0.2);
+        return { structure: structure, score: cosineSimilarity(query, reference) };
+      }).sort(function (a, b) { return b.score - a.score; }).slice(0, 5).map(function (item) {
+        return Object.assign({}, item.structure, { _score: item.score });
+      });
+      state.dbSimilarity = true;
+      state.dbItems = scored;
+      state.dbTotal = scored.length;
+      state.dbFilters = readDbFilters();
+      applyDbFiltersToResults(true);
+      toast("Similarity search", "已返回 Top-5 相似结构（Mock 余弦相似度引擎）。");
+    };
+    reader.onerror = function () {
+      toast("Read failed", "无法读取上传文件。");
+    };
+    reader.readAsText(file);
+  }
+
   function renderDbResults(items) {
     const list = $("#dbResults");
     if (!items.length) {
-      list.innerHTML = '<div class="result-empty">没有找到匹配结构。试试 Li6PS5Cl、F-43m 或 solid electrolyte。</div>';
+      const message = state.dbFilters && countActiveFilters(state.dbFilters)
+        ? "没有结构符合当前筛选条件。"
+        : "没有找到匹配结构。试试 Li6PS5Cl、F-43m 或 solid electrolyte。";
+      list.innerHTML = '<div class="result-empty">' + message + "</div>";
       return;
     }
     list.innerHTML = items.map(function (item) {
+      const score = item._score !== undefined ? '<span class="result-score">' + Math.round(item._score * 100) + "%</span>" : "";
       return '<div class="result-item' + (state.selectedStructure && state.selectedStructure.id === item.id ? " active" : "") + '" data-id="' + escapeHtml(item.id) + '">' +
         "<div><strong>" + escapeHtml(item.formula) + "</strong><small>" + escapeHtml(item.name) + "</small></div>" +
-        '<div class="result-meta"><b>' + escapeHtml(item.space_group) + "</b><small>" + escapeHtml(item.source) + "</small></div>" +
+        '<div class="result-meta"><b>' + escapeHtml(item.space_group) + "</b><small>" + escapeHtml(item.source) + "</small>" + score + "</div>" +
         "</div>";
     }).join("");
     $$(".result-item", list).forEach(function (node) {
@@ -374,6 +638,8 @@
     state.dbQuery = query || "";
     state.dbFilter = filter || "all";
     state.dbPage = page || 1;
+    state.dbFilters = readDbFilters();
+    state.dbSimilarity = false;
     showDbLoading();
     try {
       const response = await window.CrystalAPI.searchStructures({
@@ -384,13 +650,14 @@
         limit: state.dbPageSize
       });
       const items = response.data.items || [];
+      state.dbItems = items;
       state.dbTotal = Number(response.data.total) || items.length;
-      renderDbResults(items);
       renderDbPagination();
       updateDataSourceUI(response.meta);
       renderDbSourceNote(response.meta);
-      if (items.length && (!state.selectedStructure || !items.some(function (item) { return item.id === state.selectedStructure.id; }))) {
-        selectStructure(items[0], { silent: true });
+      const filtered = applyDbFiltersToResults(false);
+      if (filtered.length && (!state.selectedStructure || !filtered.some(function (item) { return item.id === state.selectedStructure.id; }))) {
+        selectStructure(filtered[0], { silent: true });
       }
       return items;
     } catch (error) {
@@ -959,6 +1226,14 @@
       runDbSearch($("#dbQuery").value, $("#dbFilter").value, 1).catch(function (error) {
         toast("Search failed", error.message);
       });
+    });
+
+    $("#applyDbFilters").addEventListener("click", applyDbFilters);
+    $("#resetDbFilters").addEventListener("click", resetDbFilters);
+    $("#runSpectrumSearch").addEventListener("click", runSpectrumSearch);
+    $("#dbSpectrumFile").addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      $("#dbSpectrumName").textContent = file ? file.name : "未选择文件";
     });
 
     $("#simulateFromDb").addEventListener("click", function () {
