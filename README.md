@@ -42,6 +42,11 @@ window.CrystalConfig = {
 
 CSP/DNG、表征、精修、合成和 Agent 目前仍是 Mock 行为；数据库检索、结构详情和实验 XRD 读取已接入 CrystalSeek 适配层。
 
+## 数据库导航 vs 网页内数据库
+
+- `CrystalDB` 卡片的“选择数据库”：外部数据库导航，点击后在新标签页打开对应数据库官网。
+- 工作台的“当前数据库”：网页内实际检索使用的数据源，目前支持 `Mock` 与 `CrystalSeek`。
+
 前端交互不变，后端按 `docs/API_CONTRACT.md` 和 `api/openapi.yaml` 实现即可。
 
 ## 目录

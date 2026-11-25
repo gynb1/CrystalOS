@@ -80,16 +80,60 @@
       label.textContent = "Mock API";
       hint.textContent = "演示数据 · 切换数据源即可连接 CrystalSeek";
     }
+    const directoryMeta = $("#dbDirectoryMeta");
+    if (directoryMeta) {
+      directoryMeta.textContent = source === "crystalseek"
+        ? (meta && meta.fallback ? "CrystalSeek · fallback" : "CrystalSeek · 已接入")
+        : "CrystalOS Demo · 内置";
+    }
   }
 
-  function closeDbPicker() {
-    const trigger = $("[data-db-trigger]");
-    const menu = $("[data-db-menu]");
-    if (!trigger || !menu) return;
-    menu.hidden = true;
-    trigger.setAttribute("aria-expanded", "false");
-    const card = trigger.closest(".module-card");
-    if (card) card.classList.remove("db-open");
+  function filterDbDirectory() {
+    const grid = $("#dbDirectoryGrid");
+    if (!grid) return;
+    const query = String($("#dbDirectorySearch") ? $("#dbDirectorySearch").value : "").trim().toLowerCase();
+    const active = $(".db-filter.active");
+    const filter = active ? active.dataset.dbFilter : "all";
+    let visible = 0;
+    $$(".db-directory-item", grid).forEach(function (item) {
+      const categories = String(item.dataset.dbCategory || "").split(/\s+/);
+      const haystack = (String(item.dataset.dbSearch || "") + " " + item.textContent).toLowerCase();
+      const matchesQuery = !query || haystack.indexOf(query) !== -1;
+      const matchesFilter = filter === "all" || categories.indexOf(filter) !== -1;
+      const show = matchesQuery && matchesFilter;
+      item.hidden = !show;
+      if (show) visible += 1;
+    });
+    const empty = $("#dbDirectoryEmpty");
+    if (empty) empty.hidden = visible !== 0;
+  }
+
+  function resetDbDirectory() {
+    const search = $("#dbDirectorySearch");
+    if (search) search.value = "";
+    $$(".db-filter").forEach(function (button) {
+      button.classList.toggle("active", button.dataset.dbFilter === "all");
+    });
+    filterDbDirectory();
+  }
+
+  function openDbDirectory() {
+    const modal = $("#dbDirectoryModal");
+    if (!modal) return;
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+    resetDbDirectory();
+    window.setTimeout(function () {
+      const search = $("#dbDirectorySearch");
+      if (search) search.focus();
+    }, 60);
+  }
+
+  function closeDbDirectory() {
+    const modal = $("#dbDirectoryModal");
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.style.overflow = "";
   }
 
   function showDbLoading() {
@@ -861,26 +905,28 @@
       });
     });
 
-    const dbTrigger = $("[data-db-trigger]");
-    const dbMenu = $("[data-db-menu]");
-    if (dbTrigger && dbMenu) {
-      dbTrigger.addEventListener("click", function (event) {
-        event.stopPropagation();
-        const open = dbMenu.hidden;
-        dbMenu.hidden = !open;
-        dbTrigger.setAttribute("aria-expanded", open ? "true" : "false");
-        const card = dbTrigger.closest(".module-card");
-        if (card) card.classList.toggle("db-open", open);
-      });
-      document.addEventListener("click", function (event) {
-        const picker = $("[data-db-picker]");
-        if (picker && !picker.contains(event.target)) closeDbPicker();
-      });
+    $$("[data-open-db-directory]").forEach(function (button) {
+      button.addEventListener("click", openDbDirectory);
+    });
+    $$("[data-close-db-directory]").forEach(function (button) {
+      button.addEventListener("click", closeDbDirectory);
+    });
+    const directoryModal = $("#dbDirectoryModal");
+    if (directoryModal) {
       document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape") closeDbPicker();
+        if (event.key === "Escape" && !directoryModal.hidden) closeDbDirectory();
       });
-      $$("a.db-option", dbMenu).forEach(function (link) {
-        link.addEventListener("click", closeDbPicker);
+      const search = $("#dbDirectorySearch");
+      if (search) search.addEventListener("input", filterDbDirectory);
+      $$(".db-filter").forEach(function (button) {
+        button.addEventListener("click", function () {
+          $$(".db-filter").forEach(function (item) { item.classList.remove("active"); });
+          button.classList.add("active");
+          filterDbDirectory();
+        });
+      });
+      $$(".db-directory-item", directoryModal).forEach(function (link) {
+        link.addEventListener("click", closeDbDirectory);
       });
     }
 

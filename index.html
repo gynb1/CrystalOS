@@ -51,6 +51,12 @@
       <path d="M8 7l-4 5 4 5"></path>
       <path d="M16 7l4 5-4 5"></path>
     </symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
+      <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
+      <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
+      <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
+    </symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24">
       <path d="M5 12h14"></path>
       <path d="M13 6l6 6-6 6"></path>
@@ -195,61 +201,11 @@
             </div>
             <h3>CrystalDB</h3>
             <p>结构、实验谱图、精修结果、合成条件与失败案例的统一底座。</p>
-            <div class="db-picker" data-db-picker>
-              <button class="db-trigger" type="button" data-db-trigger aria-expanded="false">
-                <span class="db-trigger-label">选择数据库</span>
-                <span class="db-trigger-meta">9 个数据库入口</span>
-                <svg class="icon"><use href="#i-arrow"></use></svg>
-              </button>
-              <div class="db-menu" data-db-menu hidden>
-                <div class="db-menu-head"><span>数据库导航</span><small>点击跳转到对应网站</small></div>
-                <a class="db-option" href="http://crystalseek.cn/#/Home" target="_blank" rel="noopener">
-                  <span class="db-option-mark">CS</span>
-                  <span><strong>CrystalSeek</strong><small>已接入网页内检索的晶体数据库</small></span>
-                  <span class="db-option-tag live">已接入</span>
-                </a>
-                <a class="db-option" href="https://www.crystallography.net/cod/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">COD</span>
-                  <span><strong>COD</strong><small>Crystallography Open Database</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://icsd.products.fiz-karlsruhe.de/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">ICSD</span>
-                  <span><strong>ICSD</strong><small>无机晶体结构数据库</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://www.ccdc.cam.ac.uk/structures/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">CSD</span>
-                  <span><strong>CSD / CCDC</strong><small>剑桥结构数据库</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://materialsproject.org/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">MP</span>
-                  <span><strong>Materials Project</strong><small>材料计算与性质数据库</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://oqmd.org/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">OQ</span>
-                  <span><strong>OQMD</strong><small>开放量子材料数据库</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://aflow.org/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">AF</span>
-                  <span><strong>AFLOW</strong><small>自动材料数据库</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://nomad-lab.eu/prod/v1/gui/search/entries" target="_blank" rel="noopener">
-                  <span class="db-option-mark">NM</span>
-                  <span><strong>NOMAD</strong><small>材料数据平台</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-                <a class="db-option" href="https://jarvis.nist.gov/" target="_blank" rel="noopener">
-                  <span class="db-option-mark">JV</span>
-                  <span><strong>JARVIS</strong><small>NIST 材料数据库</small></span>
-                  <span class="db-option-tag external">外部</span>
-                </a>
-              </div>
-            </div>
+            <button class="db-trigger db-trigger-large" type="button" data-open-db-directory aria-haspopup="dialog">
+              <span class="db-trigger-label">选择数据库</span>
+              <span class="db-trigger-meta" id="dbDirectoryMeta">CrystalSeek · 已接入</span>
+              <svg class="icon"><use href="#i-grid"></use></svg>
+            </button>
             <div class="module-foot"><code>/api/structures</code><span>数据护城河</span></div>
           </article>
           <article class="module-card reveal">
@@ -732,6 +688,135 @@ console.log(data.tool_calls, data.citations);</code></pre>
         <div class="endpoint-list modal-endpoints" id="modalEndpoints"></div>
         <div class="modal-note">完整请求/响应字段见 <code>docs/API_CONTRACT.md</code> 与 <code>api/openapi.yaml</code>。</div>
       </div>
+    </div>
+  </div>
+
+  <div class="modal db-directory-modal" id="dbDirectoryModal" hidden>
+    <div class="modal-backdrop" data-close-db-directory></div>
+    <div class="modal-card db-directory-card" role="dialog" aria-modal="true" aria-labelledby="dbDirectoryTitle">
+      <div class="db-directory-head">
+        <div>
+          <span class="card-kicker">DATABASE DIRECTORY</span>
+          <h3 id="dbDirectoryTitle">晶体学数据库导航</h3>
+          <p>选择一个数据库，跳转到对应网站。网页内检索请使用工作台的“当前数据库”。</p>
+        </div>
+        <button class="icon-btn" type="button" data-close-db-directory aria-label="关闭">
+          <svg class="icon"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="db-directory-toolbar">
+        <div class="input-wrap db-directory-search">
+          <svg class="icon"><use href="#i-search"></use></svg>
+          <input id="dbDirectorySearch" type="text" placeholder="搜索数据库，例如 COD、ICSD、Materials Project" autocomplete="off">
+        </div>
+        <div class="db-filter-chips" id="dbDirectoryFilters">
+          <button class="db-filter active" type="button" data-db-filter="all">全部</button>
+          <button class="db-filter" type="button" data-db-filter="integrated">已接入</button>
+          <button class="db-filter" type="button" data-db-filter="open">开放</button>
+          <button class="db-filter" type="button" data-db-filter="commercial">商业</button>
+          <button class="db-filter" type="button" data-db-filter="compute">计算</button>
+          <button class="db-filter" type="button" data-db-filter="mineral">矿物</button>
+        </div>
+      </div>
+      <div class="db-directory-grid" id="dbDirectoryGrid">
+        <a class="db-directory-item" href="http://crystalseek.cn/#/Home" target="_blank" rel="noopener" data-db-category="integrated" data-db-search="crystalseek 晶体 数据库 已接入">
+          <div class="db-directory-top"><span class="db-directory-mark mark-integrated">CS</span><span class="db-directory-tag live">已接入</span></div>
+          <h4>CrystalSeek</h4>
+          <p>已接入网页内检索的晶体数据库，支持结构、详情与 XRD。</p>
+          <div class="db-directory-foot"><span>crystalseek.cn</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://www.crystallography.net/cod/" target="_blank" rel="noopener" data-db-category="open" data-db-search="cod crystallography open database 晶体 开放">
+          <div class="db-directory-top"><span class="db-directory-mark mark-open">COD</span><span class="db-directory-tag open">开放</span></div>
+          <h4>COD</h4>
+          <p>Crystallography Open Database，开放晶体结构数据库。</p>
+          <div class="db-directory-foot"><span>crystallography.net</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://icsd.products.fiz-karlsruhe.de/" target="_blank" rel="noopener" data-db-category="commercial" data-db-search="icsd 无机 晶体 结构 商业">
+          <div class="db-directory-top"><span class="db-directory-mark mark-commercial">ICSD</span><span class="db-directory-tag commercial">商业</span></div>
+          <h4>ICSD</h4>
+          <p>无机晶体结构数据库，覆盖实验解析的无机与矿物结构。</p>
+          <div class="db-directory-foot"><span>fiz-karlsruhe.de</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://www.ccdc.cam.ac.uk/structures/" target="_blank" rel="noopener" data-db-category="commercial" data-db-search="csd ccdc 剑桥 结构 数据库 商业 有机">
+          <div class="db-directory-top"><span class="db-directory-mark mark-commercial">CSD</span><span class="db-directory-tag commercial">商业</span></div>
+          <h4>CSD / CCDC</h4>
+          <p>剑桥结构数据库，有机与金属有机晶体结构的重要来源。</p>
+          <div class="db-directory-foot"><span>ccdc.cam.ac.uk</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://rruff.geo.arizona.edu/AMS/amcsd.php" target="_blank" rel="noopener" data-db-category="mineral" data-db-search="amcsd 矿物 晶体 结构 数据库">
+          <div class="db-directory-top"><span class="db-directory-mark mark-mineral">AM</span><span class="db-directory-tag mineral">矿物</span></div>
+          <h4>AMCSD</h4>
+          <p>American Mineralogist Crystal Structure Database，矿物晶体结构库。</p>
+          <div class="db-directory-foot"><span>rruff.geo.arizona.edu</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://rruff.info/" target="_blank" rel="noopener" data-db-category="mineral" data-db-search="rruff 矿物 拉曼 xrd 光谱 数据库">
+          <div class="db-directory-top"><span class="db-directory-mark mark-mineral">RR</span><span class="db-directory-tag mineral">矿物</span></div>
+          <h4>RRUFF</h4>
+          <p>矿物 XRD、Raman 与化学组成数据平台。</p>
+          <div class="db-directory-foot"><span>rruff.info</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://mpds.io/" target="_blank" rel="noopener" data-db-category="commercial" data-db-search="mpds 材料 平台 数据 商业">
+          <div class="db-directory-top"><span class="db-directory-mark mark-commercial">MPDS</span><span class="db-directory-tag commercial">商业</span></div>
+          <h4>MPDS</h4>
+          <p>Materials Platform for Data Science，材料结构与性质数据平台。</p>
+          <div class="db-directory-foot"><span>mpds.io</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://materials.springer.com/" target="_blank" rel="noopener" data-db-category="commercial" data-db-search="springermaterials 材料 数据 商业">
+          <div class="db-directory-top"><span class="db-directory-mark mark-commercial">SM</span><span class="db-directory-tag commercial">商业</span></div>
+          <h4>SpringerMaterials</h4>
+          <p>材料科学与物理化学数据平台，包含晶体结构与性质数据。</p>
+          <div class="db-directory-foot"><span>materials.springer.com</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://paulingfile.com/" target="_blank" rel="noopener" data-db-category="commercial" data-db-search="pauling file 晶体 结构 相图 商业">
+          <div class="db-directory-top"><span class="db-directory-mark mark-commercial">PF</span><span class="db-directory-tag commercial">商业</span></div>
+          <h4>Pauling File</h4>
+          <p>晶体结构、相图与材料性质数据库。</p>
+          <div class="db-directory-foot"><span>paulingfile.com</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://materialsproject.org/" target="_blank" rel="noopener" data-db-category="compute" data-db-search="materials project mp 计算 材料 数据库">
+          <div class="db-directory-top"><span class="db-directory-mark mark-compute">MP</span><span class="db-directory-tag compute">计算</span></div>
+          <h4>Materials Project</h4>
+          <p>基于第一性原理计算的材料结构与性质数据库。</p>
+          <div class="db-directory-foot"><span>materialsproject.org</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://oqmd.org/" target="_blank" rel="noopener" data-db-category="compute" data-db-search="oqmd 开放 量子 材料 数据库 计算">
+          <div class="db-directory-top"><span class="db-directory-mark mark-compute">OQ</span><span class="db-directory-tag compute">计算</span></div>
+          <h4>OQMD</h4>
+          <p>Open Quantum Materials Database，开放量子材料数据库。</p>
+          <div class="db-directory-foot"><span>oqmd.org</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://aflow.org/" target="_blank" rel="noopener" data-db-category="compute" data-db-search="aflow 自动 材料 数据库 计算">
+          <div class="db-directory-top"><span class="db-directory-mark mark-compute">AF</span><span class="db-directory-tag compute">计算</span></div>
+          <h4>AFLOW</h4>
+          <p>Automatic FLOW for Materials Discovery，自动化材料数据库。</p>
+          <div class="db-directory-foot"><span>aflow.org</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://nomad-lab.eu/prod/v1/gui/search/entries" target="_blank" rel="noopener" data-db-category="compute" data-db-search="nomad 材料 数据 平台 计算">
+          <div class="db-directory-top"><span class="db-directory-mark mark-compute">NM</span><span class="db-directory-tag compute">计算</span></div>
+          <h4>NOMAD</h4>
+          <p>开放材料数据平台，聚合计算与实验元数据。</p>
+          <div class="db-directory-foot"><span>nomad-lab.eu</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://jarvis.nist.gov/" target="_blank" rel="noopener" data-db-category="compute" data-db-search="jarvis nist 材料 数据库 计算">
+          <div class="db-directory-top"><span class="db-directory-mark mark-compute">JV</span><span class="db-directory-tag compute">计算</span></div>
+          <h4>JARVIS</h4>
+          <p>NIST 材料数据库与计算工具集。</p>
+          <div class="db-directory-foot"><span>jarvis.nist.gov</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://mdr.nims.go.jp/" target="_blank" rel="noopener" data-db-category="open" data-db-search="nims mdr 材料 数据 开放 日本">
+          <div class="db-directory-top"><span class="db-directory-mark mark-open">MDR</span><span class="db-directory-tag open">开放</span></div>
+          <h4>NIMS MDR</h4>
+          <p>日本 NIMS 材料数据平台，包含结构与实验数据。</p>
+          <div class="db-directory-foot"><span>mdr.nims.go.jp</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+        <a class="db-directory-item" href="https://www.materialscloud.org/" target="_blank" rel="noopener" data-db-category="open compute" data-db-search="materials cloud 材料 云 计算 开放">
+          <div class="db-directory-top"><span class="db-directory-mark mark-open">MC</span><span class="db-directory-tag open">开放</span></div>
+          <h4>Materials Cloud</h4>
+          <p>开放材料计算数据与工作流平台。</p>
+          <div class="db-directory-foot"><span>materialscloud.org</span><svg class="icon"><use href="#i-up"></use></svg></div>
+        </a>
+      </div>
+      <div class="db-directory-empty" id="dbDirectoryEmpty" hidden>没有找到匹配的数据库。</div>
     </div>
   </div>
 
