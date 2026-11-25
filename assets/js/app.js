@@ -80,12 +80,6 @@
       label.textContent = "Mock API";
       hint.textContent = "演示数据 · 切换数据源即可连接 CrystalSeek";
     }
-    const triggerMeta = $(".db-trigger-meta");
-    if (triggerMeta) {
-      triggerMeta.textContent = source === "crystalseek"
-        ? (meta && meta.fallback ? "CrystalSeek · fallback" : "CrystalSeek · 已接入")
-        : "CrystalOS Demo · 内置";
-    }
   }
 
   function closeDbPicker() {
@@ -884,23 +878,6 @@
       });
       document.addEventListener("keydown", function (event) {
         if (event.key === "Escape") closeDbPicker();
-      });
-      $$("[data-db-action='workspace']", dbMenu).forEach(function (option) {
-        option.addEventListener("click", function () {
-          const source = option.dataset.dbSource || "mock";
-          window.CrystalConfig.dataSource = source;
-          const select = $("#dataSourceSelect");
-          if (select) select.value = source;
-          state.selectedStructure = null;
-          state.dbPage = 1;
-          updateDataSourceUI();
-          closeDbPicker();
-          activateTab("database", true);
-          runDbSearch("", "all", 1).catch(function (error) {
-            toast("DataSource failed", error.message);
-          });
-          toast("Database selected", source === "crystalseek" ? "正在连接 CrystalSeek 数据库。" : "已切换到 CrystalOS Demo 数据库。");
-        });
       });
       $$("a.db-option", dbMenu).forEach(function (link) {
         link.addEventListener("click", closeDbPicker);

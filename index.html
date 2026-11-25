@@ -198,20 +198,16 @@
             <div class="db-picker" data-db-picker>
               <button class="db-trigger" type="button" data-db-trigger aria-expanded="false">
                 <span class="db-trigger-label">选择数据库</span>
-                <span class="db-trigger-meta">CrystalSeek · 已接入</span>
+                <span class="db-trigger-meta">9 个数据库入口</span>
                 <svg class="icon"><use href="#i-arrow"></use></svg>
               </button>
               <div class="db-menu" data-db-menu hidden>
-                <button class="db-option" type="button" data-db-action="workspace" data-db-source="mock">
-                  <span class="db-option-mark">OS</span>
-                  <span><strong>CrystalOS Demo</strong><small>内置演示结构，用于联调</small></span>
-                  <span class="db-option-tag">内置</span>
-                </button>
-                <button class="db-option" type="button" data-db-action="workspace" data-db-source="crystalseek">
+                <div class="db-menu-head"><span>数据库导航</span><small>点击跳转到对应网站</small></div>
+                <a class="db-option" href="http://crystalseek.cn/#/Home" target="_blank" rel="noopener">
                   <span class="db-option-mark">CS</span>
-                  <span><strong>CrystalSeek</strong><small>已接入真实检索、结构与 XRD</small></span>
+                  <span><strong>CrystalSeek</strong><small>已接入网页内检索的晶体数据库</small></span>
                   <span class="db-option-tag live">已接入</span>
-                </button>
+                </a>
                 <a class="db-option" href="https://www.crystallography.net/cod/" target="_blank" rel="noopener">
                   <span class="db-option-mark">COD</span>
                   <span><strong>COD</strong><small>Crystallography Open Database</small></span>
@@ -370,14 +366,14 @@
             <h2>联调工作台</h2>
           </div>
           <div class="workspace-meta">
-            <label class="source-switch">数据源
+            <label class="source-switch">当前数据库
               <select id="dataSourceSelect">
                 <option value="mock">Mock</option>
                 <option value="crystalseek">CrystalSeek</option>
               </select>
             </label>
             <span class="mock-badge" id="dataSourceBadge"><span></span><b id="dataSourceLabel">CrystalSeek</b></span>
-            <span id="dataSourceHint">本地代理：127.0.0.1:8787</span>
+            <span id="dataSourceHint">网页内检索数据源</span>
           </div>
         </div>
 
