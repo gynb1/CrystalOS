@@ -9,7 +9,13 @@
     phaseResult: null,
     refinement: null,
     synthesis: null,
-    activeTab: "database"
+    activeTab: "database",
+    dbQuery: "",
+    dbFilter: "all",
+    dbPage: 1,
+    dbPageSize: 10,
+    dbTotal: 0,
+    selectionToken: 0
   };
 
   const endpointDescriptions = {
@@ -42,6 +48,81 @@
   function formatNumber(value, digits) {
     if (value === undefined || value === null || Number.isNaN(Number(value))) return "—";
     return Number(value).toFixed(digits === undefined ? 2 : digits);
+  }
+
+  function currentSource() {
+    const configured = window.CrystalConfig.dataSource || "auto";
+    if (configured !== "auto") return configured;
+    const host = window.location.hostname;
+    const isLocal = host === "localhost" || host === "127.0.0.1" || host === "";
+    if (isLocal) return "crystalseek";
+    const cfg = window.CrystalConfig.crystalseek || {};
+    return cfg.publicBaseUrl ? "crystalseek" : "mock";
+  }
+
+  function updateDataSourceUI(meta) {
+    const source = currentSource();
+    const label = $("#dataSourceLabel");
+    const badge = $("#dataSourceBadge");
+    const hint = $("#dataSourceHint");
+    const select = $("#dataSourceSelect");
+    if (select) select.value = source;
+    if (!label || !badge || !hint) return;
+    badge.classList.remove("live", "fallback");
+    if (source === "crystalseek") {
+      label.textContent = meta && meta.fallback ? "CrystalSeek · fallback" : "CrystalSeek";
+      hint.textContent = meta && meta.fallback
+        ? "CrystalSeek 不可用，当前回退到 Mock"
+        : "CrystalSeek · /api/File/search";
+      if (meta && meta.fallback) badge.classList.add("fallback");
+      else badge.classList.add("live");
+    } else {
+      label.textContent = "Mock API";
+      hint.textContent = "演示数据 · 切换数据源即可连接 CrystalSeek";
+    }
+  }
+
+  function showDbLoading() {
+    $("#dbResults").innerHTML = '<div class="db-loading"><span class="spinner"></span>正在检索 CrystalSeek…</div>';
+    $("#dbPagination").innerHTML = "";
+  }
+
+  function renderDbSourceNote(meta) {
+    const note = $("#dbSourceNote");
+    if (!note) return;
+    if (meta && meta.source === "crystalseek") {
+      note.innerHTML = '<span class="status-dot ready"></span>数据来自 CrystalSeek · <code>/api/File/search</code>';
+    } else if (meta && meta.fallback) {
+      note.innerHTML = '<span class="status-dot beta"></span>CrystalSeek 未连接，已回退 Mock · ' + escapeHtml(meta.reason || "");
+    } else {
+      note.innerHTML = '<span class="status-dot beta"></span>数据来自 Mock 适配器 · 切换到 CrystalSeek 可连接真实数据库';
+    }
+  }
+
+  function renderDbPagination() {
+    const holder = $("#dbPagination");
+    const total = Number(state.dbTotal) || 0;
+    const size = Number(state.dbPageSize) || 10;
+    const pages = Math.max(1, Math.ceil(total / size));
+    if (total <= 0 || pages <= 1) {
+      holder.innerHTML = total > 0 ? '<span class="page-info">共 ' + total + ' 条</span>' : "";
+      return;
+    }
+    holder.innerHTML = '<button type="button" data-page="prev"' + (state.dbPage <= 1 ? " disabled" : "") + '>上一页</button>' +
+      '<span class="page-info">第 ' + state.dbPage + ' / ' + pages + ' 页 · 共 ' + total + ' 条</span>' +
+      '<button type="button" data-page="next"' + (state.dbPage >= pages ? " disabled" : "") + '>下一页</button>';
+    $$("button", holder).forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (button.dataset.page === "prev" && state.dbPage > 1) {
+          state.dbPage -= 1;
+          runDbSearch(state.dbQuery, state.dbFilter, state.dbPage);
+        }
+        if (button.dataset.page === "next" && state.dbPage < pages) {
+          state.dbPage += 1;
+          runDbSearch(state.dbQuery, state.dbFilter, state.dbPage);
+        }
+      });
+    });
   }
 
   function toast(title, message) {
@@ -130,19 +211,52 @@
     window.CrystalCharts.renderXrd($("#heroXrd"), pattern, { width: 420, height: 110, compact: true });
   }
 
-  function selectStructure(structure, options) {
-    state.selectedStructure = structure;
+  function renderStructureCard(structure) {
     $("#structureTitle").textContent = structure.formula + " · " + structure.name;
     $("#structureSource").textContent = structure.source || "CrystalDB";
-    window.CrystalCharts.renderCrystal($("#structureView"), structure, { width: 420, height: 300, scale: 100 });
-    renderStructureLegend(structure);
+    if (structure.atoms && structure.atoms.length) {
+      window.CrystalCharts.renderCrystal($("#structureView"), structure, { width: 420, height: 300, scale: 100 });
+      renderStructureLegend(structure);
+    } else {
+      $("#structureView").innerHTML = '<text x="210" y="150" fill="#8ff0e4" font-size="11" text-anchor="middle">正在加载结构详情…</text>';
+      $("#structureLegend").innerHTML = "";
+    }
     renderStructureProps(structure);
+    updatePipeline("database");
+  }
+
+  async function selectStructure(structure, options) {
+    const token = ++state.selectionToken;
+    state.selectedStructure = structure;
+    renderStructureCard(structure);
     $$(".result-item").forEach(function (item) {
       item.classList.toggle("active", item.dataset.id === structure.id);
     });
-    updatePipeline("database");
     if (options && options.silent !== true) {
       toast("Structure selected", structure.formula + " · " + structure.space_group);
+    }
+    if (currentSource() === "crystalseek" && structure.id && (!structure.atoms || !structure.atoms.length)) {
+      try {
+        const response = await window.CrystalAPI.getStructure({ id: structure.id });
+        if (token !== state.selectionToken) return;
+        updateDataSourceUI(response.meta);
+        if (response.meta && response.meta.fallback) {
+          $("#structureView").innerHTML = '<text x="210" y="150" fill="#f5c76a" font-size="11" text-anchor="middle">详情接口不可用</text>';
+          toast("Detail unavailable", "CrystalSeek 详情接口不可用，保留检索结果。");
+          return;
+        }
+        const detail = response.data || {};
+        state.selectedStructure = Object.assign({}, structure, detail, {
+          id: structure.id,
+          formula: detail.formula || structure.formula,
+          name: detail.name || structure.name
+        });
+        renderStructureCard(state.selectedStructure);
+      } catch (error) {
+        if (token === state.selectionToken) {
+          toast("Structure detail failed", error.message);
+        }
+      }
     }
   }
 
@@ -160,15 +274,22 @@
     }).join("");
   }
 
+  function displayValue(value, suffix) {
+    if (value === undefined || value === null || value === "" || value === "—") return "—";
+    return String(value) + (suffix || "");
+  }
+
   function renderStructureProps(structure) {
     const lattice = structure.lattice || {};
+    const group = structure.space_group || "—";
+    const groupNumber = structure.space_group_number ? " (#" + structure.space_group_number + ")" : "";
     const items = [
-      ["化学式", structure.formula],
-      ["空间群", structure.space_group + " (#" + structure.space_group_number + ")"],
+      ["化学式", structure.formula || "—"],
+      ["空间群", group + groupNumber],
       ["晶格", formatNumber(lattice.a, 3) + " / " + formatNumber(lattice.b, 3) + " / " + formatNumber(lattice.c, 3) + " Å"],
-      ["稳定性", structure.stability],
-      ["带隙", structure.band_gap_ev + " eV"],
-      ["密度", structure.density_g_cm3 + " g/cm³"]
+      ["稳定性", displayValue(structure.stability)],
+      ["带隙", displayValue(structure.band_gap_ev, " eV")],
+      ["密度", displayValue(structure.density_g_cm3, " g/cm³")]
     ];
     $("#structureProps").innerHTML = items.map(function (item) {
       return "<div><span>" + escapeHtml(item[0]) + "</span><strong>" + escapeHtml(item[1]) + "</strong></div>";
@@ -195,14 +316,35 @@
     });
   }
 
-  async function runDbSearch(query, filter) {
-    const response = await window.CrystalAPI.searchStructures({ query: query || "", filter: filter || "all", limit: 20 });
-    const items = response.data.items || [];
-    renderDbResults(items);
-    if (items.length && (!state.selectedStructure || !items.some(function (item) { return item.id === state.selectedStructure.id; }))) {
-      selectStructure(items[0], { silent: true });
+  async function runDbSearch(query, filter, page) {
+    state.dbQuery = query || "";
+    state.dbFilter = filter || "all";
+    state.dbPage = page || 1;
+    showDbLoading();
+    try {
+      const response = await window.CrystalAPI.searchStructures({
+        query: state.dbQuery,
+        filter: state.dbFilter,
+        page: state.dbPage,
+        pageSize: state.dbPageSize,
+        limit: state.dbPageSize
+      });
+      const items = response.data.items || [];
+      state.dbTotal = Number(response.data.total) || items.length;
+      renderDbResults(items);
+      renderDbPagination();
+      updateDataSourceUI(response.meta);
+      renderDbSourceNote(response.meta);
+      if (items.length && (!state.selectedStructure || !items.some(function (item) { return item.id === state.selectedStructure.id; }))) {
+        selectStructure(items[0], { silent: true });
+      }
+      return items;
+    } catch (error) {
+      $("#dbResults").innerHTML = '<div class="result-empty">检索失败：' + escapeHtml(error.message) + "</div>";
+      $("#dbPagination").innerHTML = "";
+      $("#dbSourceNote").innerHTML = '<span class="status-dot beta"></span>连接失败：' + escapeHtml(error.message);
+      throw error;
     }
-    return items;
   }
 
   function renderCspResults(candidates) {
@@ -335,8 +477,28 @@
 
   async function simulateStructureXrd(structureId) {
     const button = $("#simulateFromDb");
-    setBusy(button, true, "模拟中…");
+    setBusy(button, true, "加载中…");
     try {
+      if (currentSource() === "crystalseek" && state.selectedStructure && state.selectedStructure.xrd_path) {
+        try {
+          const realResponse = await window.CrystalAPI.getPattern({ structure: state.selectedStructure });
+          if (realResponse.data) {
+            state.pattern = normalizePattern(realResponse.data);
+            state.pattern.source = "CrystalSeek experimental · " + state.selectedStructure.formula;
+            state.pattern.pattern_id = "cs_xrd_" + state.selectedStructure.id;
+            state.phaseResult = null;
+            renderPatternChart();
+            $("#phaseResults").innerHTML = '<div class="result-empty">已加载真实实验 XRD。物相识别模块尚未接入，当前不生成 Mock 物相结果。</div>';
+            $("#phaseDiagnosis").innerHTML = "<strong>Note</strong>数据库谱图已接通；物相识别、精修与定量分析仍为 Mock，后续接入后会自动更新。";
+            updatePipeline("characterization");
+            activateTab("characterization", true);
+            toast("CrystalSeek PXRD loaded", "已加载数据库中的实验 XRD；物相识别模块仍为 Mock。");
+            return;
+          }
+        } catch (error) {
+          toast("XRD file unavailable", "数据库 XRD 文件加载失败，使用模拟谱。");
+        }
+      }
       const response = await window.CrystalAPI.simulateXrd({ structure_id: structureId });
       state.pattern = normalizePattern(response.data);
       state.pattern.source = "simulated · " + state.selectedStructure.formula;
@@ -382,6 +544,9 @@
 
   async function sendToRefine() {
     if (!state.pattern) loadDemoPattern();
+    if (state.pattern && String(state.pattern.source).indexOf("CrystalSeek experimental") !== -1) {
+      toast("Mock refinement", "真实 XRD 已加载，但精修模块尚未接入，以下指标为演示数据。");
+    }
     const button = $("#sendToRefine");
     setBusy(button, true, "精修中…");
     try {
@@ -696,9 +861,23 @@
       if (event.key === "Escape" && !$("#apiModal").hidden) closeApiModal();
     });
 
+    const dataSourceSelect = $("#dataSourceSelect");
+    if (dataSourceSelect) {
+      dataSourceSelect.addEventListener("change", function () {
+        window.CrystalConfig.dataSource = dataSourceSelect.value;
+        state.dbPage = 1;
+        state.selectedStructure = null;
+        updateDataSourceUI();
+        runDbSearch(state.dbQuery, state.dbFilter, 1).catch(function (error) {
+          toast("DataSource failed", error.message);
+        });
+        toast("DataSource switched", dataSourceSelect.value === "crystalseek" ? "正在连接 CrystalSeek 数据库。" : "已切换到 Mock 演示数据。");
+      });
+    }
+
     $("#dbSearchForm").addEventListener("submit", function (event) {
       event.preventDefault();
-      runDbSearch($("#dbQuery").value, $("#dbFilter").value).catch(function (error) {
+      runDbSearch($("#dbQuery").value, $("#dbFilter").value, 1).catch(function (error) {
         toast("Search failed", error.message);
       });
     });
@@ -766,12 +945,13 @@
     selectStructure(state.selectedStructure, { silent: true });
     renderHero();
     renderAgentSuggestions();
+    updateDataSourceUI();
 
     const localPattern = normalizePattern(window.CrystalData.defaultPattern);
     state.pattern = Object.assign(localPattern, { pattern_id: "pat_exp_demo", source: "experimental demo" });
     renderPatternChart();
 
-    await runDbSearch("", "all");
+    await runDbSearch("", "all", 1);
 
     const results = await Promise.all([
       window.CrystalAPI.generateStructures({

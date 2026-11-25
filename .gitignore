@@ -1,0 +1,4 @@
+proxy/.token
+proxy/.env
+*.log
+__pycache__/

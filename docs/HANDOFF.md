@@ -438,3 +438,59 @@ window.CrystalConfig = {
 4. 建立 benchmark 与 2–3 个真实案例。
 5. 做 3 家试点用户的完整闭环测试。
 6. 根据试点反馈决定是否进入公测与私有化版本。
+
+---
+
+## 14. CrystalSeek 数据库接入（2026-11-25）
+
+已将 `http://crystalseek.cn` 的数据库接入网页数据库模块。
+
+### 14.1 上游接口
+
+- 检索：`POST https://crystalseek.cn/api/File/search`
+- 详情：`POST /api/File/search_single`
+- 文件：`POST /api/File/get_file`
+- 认证：默认使用 `Authorization: <xsg_token>`，401 时自动尝试 `Bearer <token>`
+
+### 14.2 前端改动
+
+- 新增 `assets/js/api/crystalseek.js`
+- `assets/js/api/client.js` 增加数据源路由与 Mock fallback
+- 数据库面板增加分页、加载状态、数据源切换和来源提示
+- 选择真实结构后自动请求详情，映射原子坐标到 SVG 晶体视图
+- 如果详情包含 `xrd_path`，可读取真实实验 XRD 并显示
+- CSP/DNG、表征、精修、合成、Agent 仍为 Mock
+
+### 14.3 代理
+
+因为 GitHub Pages 是 HTTPS，而上游 API 是 HTTP，所以必须通过代理：
+
+- 本地：`proxy/server.py` + `proxy/run-proxy.ps1`
+- 公网：`proxy/worker.js` + Cloudflare Worker
+
+token 只放在代理端，不能写进前端：
+
+- 本地文件：`proxy/.token`（已加入 `.gitignore`）
+- Cloudflare：`wrangler secret put CRYSTALSEEK_TOKEN`
+
+### 14.4 配置
+
+`assets/js/config.js`：
+
+```js
+dataSource: "auto",
+crystalseek: {
+  localBaseUrl: "http://127.0.0.1:8787",
+  publicBaseUrl: "https://crystalseek-proxy.gynb1.workers.dev",
+  fallbackToMock: true
+}
+```
+
+`publicBaseUrl` 已填入 Worker 地址，GitHub Pages 上的数据库模块会连接真实 CrystalSeek。
+
+### 14.5 待验证
+
+- 用真实 token 验证 `/api/File/search`、`/api/File/search_single` 的实际字段。
+- 确认真实 XRD 文件格式与列顺序。
+- 确认真实 `atoms` 字段名是否与当前兼容映射一致。
+- 确认数据库 API 的使用条款、限流与缓存策略。

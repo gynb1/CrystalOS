@@ -1,0 +1,7 @@
+name = "crystalseek-proxy"
+main = "worker.js"
+compatibility_date = "2026-11-25"
+
+[vars]
+CRYSTALSEEK_API = "https://crystalseek.cn"
+ALLOW_ORIGINS = "https://gynb1.github.io,http://localhost:8080,http://127.0.0.1:8080"

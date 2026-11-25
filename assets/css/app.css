@@ -1015,6 +1015,40 @@ pre {
   font-size: 11px;
 }
 
+.source-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #71859b;
+  font-size: 10px;
+}
+
+.source-switch select {
+  width: auto;
+  min-width: 104px;
+  padding: 7px 28px 7px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #dce8f5;
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+#dataSourceLabel {
+  font-weight: 700;
+}
+
+#dataSourceBadge.live {
+  color: #8ff0e4;
+  border-color: rgba(45, 212, 191, 0.24);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+#dataSourceBadge.fallback {
+  color: var(--gold);
+  border-color: rgba(245, 199, 106, 0.24);
+  background: rgba(245, 199, 106, 0.08);
+}
+
 .mock-badge {
   display: inline-flex;
   align-items: center;
@@ -1332,6 +1366,76 @@ select {
   color: #71859b;
   font-size: 12px;
   text-align: center;
+}
+
+.db-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  min-height: 28px;
+  color: #71859b;
+  font-size: 9px;
+}
+
+.db-pagination:empty {
+  display: none;
+}
+
+.db-pagination button {
+  padding: 6px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #9fb3c8;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 9px;
+}
+
+.db-pagination button:hover:not(:disabled) {
+  color: #d9fbf6;
+  border-color: rgba(45, 212, 191, 0.32);
+}
+
+.db-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.db-pagination .page-info {
+  color: #5f7a93;
+}
+
+.db-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  color: #8ff0e4;
+  font-size: 11px;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(45, 212, 191, 0.2);
+  border-top-color: var(--teal);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.structure-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  color: #8ff0e4;
+  font-size: 11px;
+  gap: 8px;
 }
 
 .panel-note {

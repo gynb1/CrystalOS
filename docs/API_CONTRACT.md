@@ -521,3 +521,124 @@
 8. `POST /api/agent/chat`
 
 前端切换真实 API 只需修改 `assets/js/config.js` 中的 `useMock` 与 `baseUrl`，页面交互逻辑不变。
+
+---
+
+## 12. CrystalSeek 数据库接入
+
+数据库模块已增加 CrystalSeek 适配层，真实上游接口：
+
+| 方法 | 上游路径 | 用途 |
+|---|---|---|
+| POST | `/api/File/search` | 结构检索 |
+| POST | `/api/File/search_single` | 按 GUID 获取结构详情、原子和文件路径 |
+| POST | `/api/File/get_file` | 读取 CIF / XRD 文件，返回 base64 |
+| POST | `/api/File/get_cif_file` | CIF 文件备用端点 |
+
+上游地址：`https://crystalseek.cn`
+
+上游认证：
+
+CrystalSeek 前端源码直接发送 token，默认格式为：
+
+```http
+Authorization: <CRYSTALSEEK_TOKEN>
+```
+
+代理默认也使用 raw token；如果上游返回 401，会自动用 `Bearer <token>` 重试一次。也可以通过 `CRYSTALSEEK_AUTH_PREFIX=Bearer` 强制使用 Bearer。
+
+前端不直接持有 token。通过 `proxy/worker.js` 或 `proxy/server.py` 代理，把 token 放在代理端。
+
+### 12.1 检索请求
+
+```json
+{
+  "searchType": "Materials",
+  "searchKeyword": "Li6PS5Cl",
+  "logic": "only",
+  "pagenum": 1,
+  "pagesize": 10
+}
+```
+
+元素组合检索示例：
+
+```json
+{
+  "searchType": "atom",
+  "searchKeyword": "[Li]-[Fe]-[O]",
+  "logic": "only",
+  "pagenum": 1,
+  "pagesize": 10
+}
+```
+
+### 12.2 检索响应字段映射
+
+CrystalSeek 常见字段：
+
+- `guid` / `id`
+- `real_name`
+- `chem_formula_sum` / `formula`
+- `cell_setting` / `crystal_system`
+- `space_group_name` / `space_group`
+- `int_Tables_number`
+- `a`、`b`、`c`、`alpha`、`beta`、`gamma`
+- `journal_full`
+- `doi`
+
+前端统一映射为：
+
+```json
+{
+  "id": "guid",
+  "formula": "chem_formula_sum",
+  "name": "real_name",
+  "space_group": "space_group_name",
+  "space_group_number": 216,
+  "lattice": {
+    "a": 9.859,
+    "b": 9.859,
+    "c": 9.859,
+    "alpha": 90,
+    "beta": 90,
+    "gamma": 90
+  },
+  "source": "journal_full",
+  "license": "doi"
+}
+```
+
+### 12.3 详情响应字段映射
+
+详情响应中的：
+
+- `atoms` → 结构可视化
+- `xrd_path` → 通过 `/api/File/get_file` 读取实验 XRD
+- `cif_path` → 通过 `/api/File/get_file` 读取 CIF
+
+`atoms` 字段兼容：
+
+- `type_symbol` / `element` / `symbol` / `atom_type`
+- `fract_x` / `x`
+- `fract_y` / `y`
+- `fract_z` / `z`
+- `occupancy`
+
+### 12.4 前端配置
+
+```js
+window.CrystalConfig = {
+  dataSource: "auto",
+  crystalseek: {
+    localBaseUrl: "http://127.0.0.1:8787",
+    publicBaseUrl: "https://你的-worker.workers.dev",
+    searchPath: "/api/File/search",
+    detailPath: "/api/File/search_single",
+    filePath: "/api/File/get_file",
+    fallbackToMock: true
+  }
+};
+```
+
+`publicBaseUrl` 为空或请求失败时，数据库模块会回退到 Mock 数据，避免公开页面直接报错。

@@ -118,6 +118,7 @@
         <a href="#workspace" data-tab-link="synthesis">合成</a>
         <a href="#workspace" data-tab-link="agent">Agent / API</a>
         <a href="#roadmap">路线图</a>
+        <a href="https://faculty.hfut.edu.cn/yudongfang/zh_CN/index.htm" target="_blank" rel="noopener">团队核心人员</a>
       </nav>
       <div class="header-actions">
         <button class="btn btn-ghost btn-sm" type="button" data-open-api>API 文档</button>
@@ -310,8 +311,14 @@
             <h2>联调工作台</h2>
           </div>
           <div class="workspace-meta">
-            <span class="mock-badge"><span></span>Mock API</span>
-            <span>切换真实后端：修改 assets/js/config.js</span>
+            <label class="source-switch">数据源
+              <select id="dataSourceSelect">
+                <option value="mock">Mock</option>
+                <option value="crystalseek">CrystalSeek</option>
+              </select>
+            </label>
+            <span class="mock-badge" id="dataSourceBadge"><span></span><b id="dataSourceLabel">CrystalSeek</b></span>
+            <span id="dataSourceHint">本地代理：127.0.0.1:8787</span>
           </div>
         </div>
 
@@ -358,7 +365,8 @@
                     <button class="btn btn-primary" type="submit">检索</button>
                   </form>
                   <div class="result-list" id="dbResults"></div>
-                  <div class="panel-note"><span class="status-dot ready"></span>数据来自 Mock 适配器，真实接口见 <code>/api/structures/search</code></div>
+                  <div class="db-pagination" id="dbPagination"></div>
+                  <div class="panel-note" id="dbSourceNote"><span class="status-dot beta"></span>正在连接 CrystalSeek 数据库…</div>
                 </div>
                 <div class="panel-card detail-card">
                   <div class="card-head">
@@ -632,6 +640,7 @@ console.log(data.tool_calls, data.citations);</code></pre>
         <a href="#platform">能力矩阵</a>
         <a href="#workflow">工作流</a>
         <a href="#workspace">联调工作台</a>
+        <a href="https://faculty.hfut.edu.cn/yudongfang/zh_CN/index.htm" target="_blank" rel="noopener">团队核心人员</a>
       </div>
       <div>
         <h4>模块</h4>
@@ -650,7 +659,7 @@ console.log(data.tool_calls, data.citations);</code></pre>
     </div>
     <div class="shell footer-bottom">
       <span>CrystalOS Demo v0.1 · Local at E:\CrystalOS</span>
-      <span>Mock API enabled · Interfaces reserved</span>
+      <span>CrystalSeek database · Mock analysis modules · Interfaces reserved</span>
     </div>
   </footer>
 
@@ -664,7 +673,7 @@ console.log(data.tool_calls, data.citations);</code></pre>
         </button>
       </div>
       <div class="modal-body">
-        <p class="modal-lead">当前为 Mock 模式。把 <code>assets/js/config.js</code> 中的 <code>useMock</code> 改为 <code>false</code>，并设置 <code>baseUrl</code>，即可接入真实后端。</p>
+        <p class="modal-lead">数据库模块支持 CrystalSeek 与 Mock 双数据源；CSP/DNG、表征、精修、合成与 Agent 仍为 Mock。真实接入配置见 <code>assets/js/config.js</code> 与 <code>proxy/README.md</code>。</p>
         <div class="endpoint-list modal-endpoints" id="modalEndpoints"></div>
         <div class="modal-note">完整请求/响应字段见 <code>docs/API_CONTRACT.md</code> 与 <code>api/openapi.yaml</code>。</div>
       </div>
@@ -677,6 +686,7 @@ console.log(data.tool_calls, data.citations);</code></pre>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/charts.js"></script>
   <script src="assets/js/api/mock.js"></script>
+  <script src="assets/js/api/crystalseek.js"></script>
   <script src="assets/js/api/client.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
