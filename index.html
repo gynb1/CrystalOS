@@ -195,6 +195,65 @@
             </div>
             <h3>CrystalDB</h3>
             <p>结构、实验谱图、精修结果、合成条件与失败案例的统一底座。</p>
+            <div class="db-picker" data-db-picker>
+              <button class="db-trigger" type="button" data-db-trigger aria-expanded="false">
+                <span class="db-trigger-label">选择数据库</span>
+                <span class="db-trigger-meta">CrystalSeek · 已接入</span>
+                <svg class="icon"><use href="#i-arrow"></use></svg>
+              </button>
+              <div class="db-menu" data-db-menu hidden>
+                <button class="db-option" type="button" data-db-action="workspace" data-db-source="mock">
+                  <span class="db-option-mark">OS</span>
+                  <span><strong>CrystalOS Demo</strong><small>内置演示结构，用于联调</small></span>
+                  <span class="db-option-tag">内置</span>
+                </button>
+                <button class="db-option" type="button" data-db-action="workspace" data-db-source="crystalseek">
+                  <span class="db-option-mark">CS</span>
+                  <span><strong>CrystalSeek</strong><small>已接入真实检索、结构与 XRD</small></span>
+                  <span class="db-option-tag live">已接入</span>
+                </button>
+                <a class="db-option" href="https://www.crystallography.net/cod/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">COD</span>
+                  <span><strong>COD</strong><small>Crystallography Open Database</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://icsd.products.fiz-karlsruhe.de/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">ICSD</span>
+                  <span><strong>ICSD</strong><small>无机晶体结构数据库</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://www.ccdc.cam.ac.uk/structures/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">CSD</span>
+                  <span><strong>CSD / CCDC</strong><small>剑桥结构数据库</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://materialsproject.org/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">MP</span>
+                  <span><strong>Materials Project</strong><small>材料计算与性质数据库</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://oqmd.org/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">OQ</span>
+                  <span><strong>OQMD</strong><small>开放量子材料数据库</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://aflow.org/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">AF</span>
+                  <span><strong>AFLOW</strong><small>自动材料数据库</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://nomad-lab.eu/prod/v1/gui/search/entries" target="_blank" rel="noopener">
+                  <span class="db-option-mark">NM</span>
+                  <span><strong>NOMAD</strong><small>材料数据平台</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+                <a class="db-option" href="https://jarvis.nist.gov/" target="_blank" rel="noopener">
+                  <span class="db-option-mark">JV</span>
+                  <span><strong>JARVIS</strong><small>NIST 材料数据库</small></span>
+                  <span class="db-option-tag external">外部</span>
+                </a>
+              </div>
+            </div>
             <div class="module-foot"><code>/api/structures</code><span>数据护城河</span></div>
           </article>
           <article class="module-card reveal">
