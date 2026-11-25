@@ -1,0 +1,659 @@
+openapi: 3.1.0
+info:
+  title: CrystalOS API
+  version: 0.1.0
+  description: CrystalOS crystallography ecosystem API contract for database, CSP/DNG, XRD simulation, characterization, refinement, synthesis and agent orchestration.
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://api.example.com
+    description: Production placeholder
+security:
+  - bearerAuth: []
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/structures/search:
+    post:
+      summary: Search crystal structures
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StructureSearchRequest"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructureSearchResponse"
+  /api/structures/{id}:
+    get:
+      summary: Get structure detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Structure detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructureResponse"
+  /api/structures:
+    post:
+      summary: Persist a structure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cif]
+              properties:
+                cif:
+                  type: string
+                project_id:
+                  type: string
+                source:
+                  type: string
+                license:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Persisted structure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructureSaveResponse"
+  /api/csp/generate:
+    post:
+      summary: Generate CSP or DNG candidates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CspRequest"
+      responses:
+        "200":
+          description: Candidate structures
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CspResponse"
+  /api/xrd/simulate:
+    post:
+      summary: Simulate PXRD from a structure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XrdSimulateRequest"
+      responses:
+        "200":
+          description: Simulated pattern
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/XrdPatternResponse"
+  /api/characterization/identify:
+    post:
+      summary: Identify phases and decompose multiphase patterns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentifyRequest"
+      responses:
+        "200":
+          description: Phase identification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentifyResponse"
+  /api/refinement/run:
+    post:
+      summary: Run Rietveld, Le Bail or Pawley refinement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefineRequest"
+      responses:
+        "200":
+          description: Refinement result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefineResponse"
+  /api/synthesis/recommend:
+    post:
+      summary: Recommend solid-state recipes, insights and novel reactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SynthesisRequest"
+      responses:
+        "200":
+          description: Synthesis plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynthesisResponse"
+  /api/agent/chat:
+    post:
+      summary: Chat with the crystallography workflow agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRequest"
+      responses:
+        "200":
+          description: Agent response with tool calls and citations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentResponse"
+  /api/jobs/{id}:
+    get:
+      summary: Poll a long-running job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Envelope:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+        request_id:
+          type: string
+        elapsed_ms:
+          type: number
+        error:
+          type: object
+          nullable: true
+    HealthResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                version:
+                  type: string
+                modules:
+                  type: object
+                  additionalProperties:
+                    type: string
+    Structure:
+      type: object
+      required: [id, formula, space_group, lattice]
+      properties:
+        id:
+          type: string
+        formula:
+          type: string
+        name:
+          type: string
+        space_group:
+          type: string
+        space_group_number:
+          type: integer
+        lattice:
+          type: object
+          properties:
+            a:
+              type: number
+            b:
+              type: number
+            c:
+              type: number
+            alpha:
+              type: number
+            beta:
+              type: number
+            gamma:
+              type: number
+        source:
+          type: string
+        license:
+          type: string
+        stability:
+          type: string
+        band_gap_ev:
+          type: number
+        density_g_cm3:
+          type: number
+        tags:
+          type: array
+          items:
+            type: string
+        peaks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Peak"
+        atoms:
+          type: array
+          items:
+            $ref: "#/components/schemas/Atom"
+    Peak:
+      type: object
+      properties:
+        x:
+          type: number
+        intensity:
+          type: number
+        hkl:
+          type: string
+    Atom:
+      type: object
+      properties:
+        element:
+          type: string
+        x:
+          type: number
+        y:
+          type: number
+        z:
+          type: number
+        occupancy:
+          type: number
+    StructureSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        filter:
+          type: string
+          enum: [all, formula, space_group, elements, source, property]
+        limit:
+          type: integer
+          default: 20
+        offset:
+          type: integer
+          default: 0
+        sort:
+          type: string
+          default: relevance
+    StructureSearchResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                total:
+                  type: integer
+                items:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Structure"
+    StructureResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/Structure"
+    StructureSaveResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                status:
+                  type: string
+                duplicate_of:
+                  type: string
+                  nullable: true
+    CspRequest:
+      type: object
+      required: [composition, method]
+      properties:
+        composition:
+          type: string
+        method:
+          type: string
+          enum: [csp, dng, hybrid]
+        space_group:
+          type: string
+        constraints:
+          type: object
+          additionalProperties: true
+    Candidate:
+      type: object
+      properties:
+        id:
+          type: string
+        formula:
+          type: string
+        method:
+          type: string
+        space_group:
+          type: string
+        score:
+          type: number
+        energy_ev_atom:
+          type: number
+        volume_a3:
+          type: number
+        synthesizability:
+          type: number
+        uncertainty:
+          type: number
+        peaks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Peak"
+    CspResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                job_id:
+                  type: string
+                candidates:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Candidate"
+    XrdSimulateRequest:
+      type: object
+      required: [structure_id]
+      properties:
+        structure_id:
+          type: string
+        wavelength:
+          type: string
+          default: CuKa
+        two_theta:
+          type: object
+          properties:
+            start:
+              type: number
+            end:
+              type: number
+            step:
+              type: number
+        profile:
+          type: string
+          default: pseudo-voigt
+        preferred_orientation:
+          type: object
+          nullable: true
+    XrdPatternResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                pattern_id:
+                  type: string
+                two_theta:
+                  type: array
+                  items:
+                    type: number
+                intensity:
+                  type: array
+                  items:
+                    type: number
+                peaks:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Peak"
+                phases:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+    IdentifyRequest:
+      type: object
+      required: [pattern_id]
+      properties:
+        pattern_id:
+          type: string
+        two_theta:
+          type: array
+          items:
+            type: number
+        intensity:
+          type: array
+          items:
+            type: number
+        options:
+          type: object
+          properties:
+            allow_multiphase:
+              type: boolean
+            max_phases:
+              type: integer
+            use_composition:
+              type: boolean
+            candidate_structure_ids:
+              type: array
+              items:
+                type: string
+    IdentifyResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                phases:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                diagnosis:
+                  type: object
+                  additionalProperties: true
+                alternatives:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+    RefineRequest:
+      type: object
+      required: [pattern_id, structure_ids]
+      properties:
+        pattern_id:
+          type: string
+        structure_ids:
+          type: array
+          items:
+            type: string
+        method:
+          type: string
+          enum: [rietveld, le_bail, pawley]
+        engine:
+          type: string
+          enum: [auto, pywpem, gsas2, fullprof, topas]
+        options:
+          type: object
+          additionalProperties: true
+    RefineResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                refinement_id:
+                  type: string
+                method:
+                  type: string
+                engine:
+                  type: string
+                metrics:
+                  type: object
+                  additionalProperties:
+                    type: number
+                parameters:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                phases:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                pattern:
+                  type: object
+                  additionalProperties: true
+                warnings:
+                  type: array
+                  items:
+                    type: string
+    SynthesisRequest:
+      type: object
+      required: [target]
+      properties:
+        target:
+          type: string
+        route:
+          type: string
+          default: solid_state
+        constraints:
+          type: object
+          additionalProperties: true
+    SynthesisResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                recipe:
+                  type: object
+                  additionalProperties: true
+                insights:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                recommended_reactions:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+    AgentRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        project_id:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+        stream:
+          type: boolean
+          default: false
+    AgentResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                message:
+                  type: string
+                tool_calls:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                citations:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                confidence:
+                  type: number
+                next_actions:
+                  type: array
+                  items:
+                    type: string
+    JobResponse:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                job_id:
+                  type: string
+                status:
+                  type: string
+                  enum: [queued, running, succeeded, failed, cancelled]
+                progress:
+                  type: number
+                message:
+                  type: string
+                result_url:
+                  type: string
+                  nullable: true
