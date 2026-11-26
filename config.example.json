@@ -1,0 +1,49 @@
+{
+  "dataSource": "auto",
+  "crystalseek": {
+    "localBaseUrl": "http://127.0.0.1:8787",
+    "publicBaseUrl": "https://crystalseek-proxy.gynb1.workers.dev"
+  },
+  "llm": {
+    "provider": "openai",
+    "openai": {
+      "apiKey": "sk-...",
+      "model": "gpt-4",
+      "baseUrl": "https://api.openai.com/v1",
+      "temperature": 0.7,
+      "maxTokens": 2000
+    },
+    "claude": {
+      "apiKey": "sk-ant-...",
+      "model": "claude-3-5-sonnet-20241022",
+      "baseUrl": "https://api.anthropic.com",
+      "temperature": 0.7,
+      "maxTokens": 2000
+    },
+    "gemini": {
+      "apiKey": "AIzaSy...",
+      "model": "gemini-2.0-flash",
+      "temperature": 0.7,
+      "maxTokens": 2000
+    },
+    "ollama": {
+      "baseUrl": "http://localhost:11434",
+      "model": "neural-chat",
+      "temperature": 0.7,
+      "maxTokens": 2000
+    }
+  },
+  "endpoints": {
+    "health": "/api/health",
+    "searchStructures": "/api/structures/search",
+    "getStructure": "/api/structures/{id}",
+    "saveStructure": "/api/structures",
+    "generateStructures": "/api/csp/generate",
+    "simulateXrd": "/api/xrd/simulate",
+    "identifyPhases": "/api/characterization/identify",
+    "refinePattern": "/api/refinement/run",
+    "recommendSynthesis": "/api/synthesis/recommend",
+    "agentChat": "/api/agent/chat",
+    "getJob": "/api/jobs/{id}"
+  }
+}

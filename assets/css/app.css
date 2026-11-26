@@ -3404,8 +3404,275 @@ select {
     flex: 1 1 100%;
   }
 
-  .db-directory-grid {
+   .db-directory-grid {
+     grid-template-columns: 1fr;
+     padding: 16px 18px 20px;
+   }
+}
+
+/* LLM 配置样式 */
+.llm-layout {
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.config-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(103, 232, 249, 0.1);
+  background: rgba(103, 232, 249, 0.02);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(103, 232, 249, 0.08);
+}
+
+.card-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #0f8f86;
+}
+
+.config-card h3,
+.info-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e9f2fc;
+  margin: 0;
+}
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8498ad;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  background: rgba(255, 255, 255, 0.02);
+  color: #c8d7e8;
+  font-size: 13px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+  border-color: rgba(103, 232, 249, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  background: rgba(103, 232, 249, 0.06);
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.1);
+}
+
+.form-group small {
+  display: block;
+  font-size: 11px;
+  color: #71859b;
+  margin-top: 2px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.form-actions .btn {
+  flex: 1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.config-status {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(103, 232, 249, 0.1);
+  background: rgba(103, 232, 249, 0.04);
+  font-size: 12px;
+  color: #8498ad;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.config-status.error {
+  border-color: rgba(244, 114, 182, 0.2);
+  background: rgba(244, 114, 182, 0.04);
+  color: #f472b6;
+}
+
+.config-status.success {
+  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(52, 211, 153, 0.04);
+  color: #34d399;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(103, 232, 249, 0.1);
+  background: rgba(103, 232, 249, 0.02);
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 12px;
+  color: #8498ad;
+  line-height: 1.6;
+}
+
+.info-content h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c8d7e8;
+  margin: 0;
+  margin-top: 4px;
+}
+
+.info-content dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.info-content dt {
+  font-weight: 700;
+  color: #e9f2fc;
+  margin: 0;
+}
+
+.info-content dd {
+  margin: 0 0 0 16px;
+  color: #8498ad;
+}
+
+.info-content a {
+  color: var(--cyan);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.info-content a:hover {
+  color: var(--teal);
+}
+
+.info-content code {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(103, 232, 249, 0.1);
+  color: var(--cyan);
+  font-size: 11px;
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.info-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-content li {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.info-content li:before {
+  content: "→";
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+/* 系统消息样式（证据链） */
+.chat-message.system {
+  background: rgba(103, 232, 249, 0.04);
+  border: 1px solid rgba(103, 232, 249, 0.1);
+}
+
+.system-message {
+  font-size: 11px;
+  color: #8498ad;
+  line-height: 1.6;
+  font-family: "Cascadia Code", Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 响应式调整 */
+@media (max-width: 1024px) {
+  .llm-layout {
     grid-template-columns: 1fr;
-    padding: 16px 18px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .config-card,
+  .info-card {
+    padding: 14px;
   }
 }

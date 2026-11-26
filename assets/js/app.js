@@ -968,12 +968,23 @@
     const log = $("#agentLog");
     const node = document.createElement("div");
     node.className = "chat-message " + role;
-    let html = escapeHtml(text);
-    if (toolCalls && toolCalls.length) {
-      html += '<div class="tool-calls">' + toolCalls.map(function (call) {
-        return '<div class="tool-call"><svg class="icon"><use href="#i-check"></use></svg><b>' + escapeHtml(call.tool) + "</b><span>" + escapeHtml(call.status) + "</span></div>";
-      }).join("") + "</div>";
+    let html = "";
+
+    // 系统消息显示证据链
+    if (role === "system") {
+      html = '<div class="system-message">' + 
+             text.split("\n").map(line => escapeHtml(line)).join("<br>") +
+             "</div>";
+    } else {
+      html = escapeHtml(text);
+      if (toolCalls && toolCalls.length) {
+        html += '<div class="tool-calls">' + toolCalls.map(function (call) {
+          return '<div class="tool-call"><svg class="icon"><use href="#i-check"></use></svg><b>' + 
+                 escapeHtml(call.tool) + "</b><span>" + escapeHtml(call.status) + "</span></div>";
+        }).join("") + "</div>";
+      }
     }
+
     node.innerHTML = html;
     log.appendChild(node);
     log.scrollTop = log.scrollHeight;
@@ -997,6 +1008,14 @@
     });
   }
 
+  // Agent 对话历史
+  const agentConversation = {
+    messages: [],
+    clear: function () { this.messages = []; },
+    addUser: function (text) { this.messages.push({ role: "user", content: text }); },
+    addAssistant: function (text) { this.messages.push({ role: "assistant", content: text }); }
+  };
+
   async function sendAgentMessage(message) {
     const text = String(message || "").trim();
     if (!text) return;
@@ -1004,28 +1023,89 @@
     $("#agentInput").value = "";
     const button = $("#agentForm button[type=submit]");
     setBusy(button, true, "…");
+
     try {
-      const response = await window.CrystalAPI.agentChat({
-        message: text,
-        project_id: "prj_demo",
-        context: {
-          selected_structure_id: state.selectedStructure ? state.selectedStructure.id : null,
-          selected_pattern_id: state.pattern ? state.pattern.pattern_id : null
+      // 1. 添加用户消息到对话历史
+      agentConversation.addUser(text);
+
+      // 2. 检查 LLM 是否配置
+      if (!window.CrystalLLM.isConfigured()) {
+        appendChat("agent", "LLM 未配置。请先在配置面板中设置 API 密钥和模型。");
+        return;
+      }
+
+      // 3. 准备工具定义
+      const tools = window.CrystalAgent.getTools();
+
+      // 4. 调用 LLM 获取响应和工具调用
+      const llmResponse = await window.CrystalLLM.chat(
+        agentConversation.messages,
+        tools,
+        { system: "你是一个晶体学研究助手。请使用提供的工具来帮助用户分析晶体结构、模拟衍射和设计合成路线。在每个回答中都要说明使用了哪些工具。" }
+      );
+
+      // 5. 添加助手响应到对话历史
+      let assistantMessage = llmResponse.content;
+      agentConversation.addAssistant(assistantMessage);
+
+      // 6. 处理工具调用
+      let toolCallsDisplay = [];
+      if (llmResponse.toolCalls && llmResponse.toolCalls.length > 0) {
+        toolCallsDisplay = llmResponse.toolCalls.map(call => ({
+          tool: call.tool,
+          status: "executed"
+        }));
+
+        // 执行工具
+        const toolResults = await window.CrystalAgent.executeToolCalls(llmResponse.toolCalls);
+
+        // 收集工具结果用于后续轮次
+        let toolResultsText = "工具执行结果：\n";
+        for (const result of toolResults) {
+          if (result.success) {
+            toolResultsText += `✓ ${result.tool}: ${JSON.stringify(result.result)}\n`;
+          } else {
+            toolResultsText += `✗ ${result.tool}: ${result.error}\n`;
+          }
         }
-      });
-      const data = response.data;
-      appendChat("agent", data.message, data.tool_calls);
-      if (data.tool_calls && data.tool_calls.some(function (call) { return call.tool === "simulate_xrd"; })) {
-        loadDemoPattern();
+
+        // 触发相关副作用（Demo 兼容）
+        if (toolResults.some(r => r.tool === "simulate_xrd" && r.success)) {
+          loadDemoPattern();
+        }
+        if (toolResults.some(r => r.tool === "recommend_synthesis" && r.success)) {
+          runSynthesis();
+        }
+        if (toolResults.some(r => r.tool === "run_refinement" && r.success)) {
+          sendToRefine();
+        }
+
+        // 添加工具结果到对话历史，供下一轮使用
+        agentConversation.messages.push({
+          role: "user",
+          content: toolResultsText
+        });
       }
-      if (data.tool_calls && data.tool_calls.some(function (call) { return call.tool === "recommend_synthesis"; })) {
-        runSynthesis();
+
+      // 7. 显示响应和工具调用
+      appendChat("agent", assistantMessage, toolCallsDisplay);
+
+      // 8. 显示证据链
+      const evidenceChain = window.CrystalAgent.getEvidenceChain();
+      if (evidenceChain.length > 0) {
+        const evidenceLog = evidenceChain.map(entry => 
+          `📊 ${entry.tool}: ${JSON.stringify(entry.result || entry.error)}`
+        ).join("\n");
+        appendChat("system", "证据链：\n" + evidenceLog);
       }
-      if (data.tool_calls && data.tool_calls.some(function (call) { return call.tool === "run_refinement"; })) {
-        sendToRefine();
-      }
+
     } catch (error) {
-      appendChat("agent", "请求失败：" + error.message + "。请检查 API 配置或稍后重试。");
+      const LLMError = window.CrystalLLM.getLLMError();
+      if (error instanceof LLMError) {
+        appendChat("agent", `LLM 错误 (${error.code}): ${error.message}`);
+      } else {
+        appendChat("agent", `请求失败：${error.message}。请检查 API 配置或稍后重试。`);
+      }
     } finally {
       setBusy(button, false);
     }
@@ -1292,6 +1372,107 @@
       event.preventDefault();
       sendAgentMessage($("#agentInput").value);
     });
+
+    // LLM 配置表单处理
+    const llmConfigForm = $("#llmConfigForm");
+    if (llmConfigForm) {
+      const llmProvider = $("#llmProvider");
+      const apiKeyGroup = $("#apiKeyGroup");
+      const baseUrlGroup = $("#baseUrlGroup");
+      const testLlmBtn = $("#testLlmBtn");
+      const llmConfigStatus = $("#llmConfigStatus");
+
+      // 供应商选择时动态显示/隐藏字段
+      llmProvider.addEventListener("change", function () {
+        const isOllama = llmProvider.value === "ollama";
+        apiKeyGroup.style.display = isOllama ? "none" : "flex";
+        apiKeyGroup.style.flexDirection = "column";
+        baseUrlGroup.style.display = isOllama ? "flex" : "none";
+        baseUrlGroup.style.flexDirection = "column";
+      });
+
+      // 表单提交 - 保存配置
+      llmConfigForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        try {
+          const formData = {
+            provider: llmProvider.value,
+            model: $("#llmModel").value.trim(),
+            apiKey: $("#llmApiKey").value.trim(),
+            baseUrl: $("#llmBaseUrl").value.trim(),
+            temperature: parseFloat($("#llmTemp").value),
+            maxTokens: parseInt($("#llmMaxTokens").value)
+          };
+
+          // 验证
+          if (!formData.model) throw new Error("模型不能为空");
+          if (formData.provider !== "ollama" && !formData.apiKey) throw new Error("API 密钥不能为空");
+          if (formData.provider === "ollama" && !formData.baseUrl) throw new Error("Ollama 服务地址不能为空");
+          if (isNaN(formData.temperature) || formData.temperature < 0 || formData.temperature > 1) {
+            throw new Error("温度必须在 0-1 之间");
+          }
+          if (isNaN(formData.maxTokens) || formData.maxTokens < 100) {
+            throw new Error("最大 token 至少为 100");
+          }
+
+          // 设置配置
+          window.CrystalLLM.setConfig(formData);
+
+          llmConfigStatus.textContent = "✓ 配置已保存";
+          llmConfigStatus.className = "config-status success";
+          toast("LLM Config", "配置已保存：" + formData.provider + " - " + formData.model);
+        } catch (error) {
+          llmConfigStatus.textContent = "✗ " + error.message;
+          llmConfigStatus.className = "config-status error";
+          toast("LLM Config Error", error.message);
+        }
+      });
+
+      // 测试连接
+      testLlmBtn.addEventListener("click", async function () {
+        try {
+          if (!window.CrystalLLM.isConfigured()) {
+            throw new Error("请先保存 LLM 配置");
+          }
+
+          setBusy(testLlmBtn, true, "测试中…");
+          llmConfigStatus.textContent = "正在测试连接…";
+          llmConfigStatus.className = "config-status";
+
+          const result = await window.CrystalLLM.testConnection();
+
+          if (result.success) {
+            llmConfigStatus.textContent = "✓ 连接成功。响应：" + result.response.substring(0, 50) + "…";
+            llmConfigStatus.className = "config-status success";
+            toast("LLM Test", "连接成功");
+          } else {
+            throw new Error(result.error || "未知错误");
+          }
+        } catch (error) {
+          llmConfigStatus.textContent = "✗ " + error.message;
+          llmConfigStatus.className = "config-status error";
+          toast("LLM Test Failed", error.message);
+        } finally {
+          setBusy(testLlmBtn, false);
+        }
+      });
+
+      // 页面加载时恢复已保存的配置
+      const config = window.CrystalLLM.getConfig();
+      if (config.configured) {
+        llmProvider.value = config.provider;
+        $("#llmModel").value = config.model;
+        $("#llmTemp").value = config.temperature;
+        $("#llmMaxTokens").value = config.maxTokens;
+        if (config.baseUrl) $("#llmBaseUrl").value = config.baseUrl;
+        
+        // 触发 change 事件以显示/隐藏相关字段
+        llmProvider.dispatchEvent(new Event("change"));
+
+        llmConfigStatus.textContent = "✓ 已加载配置：" + config.provider + " - " + config.model;
+        llmConfigStatus.className = "config-status success";
+      }
+    }
   }
 
   async function loadInitialData() {

@@ -584,6 +584,87 @@
               <div class="synthesis-grid" id="synthesisGrid"></div>
             </section>
 
+            <section class="tab-panel" data-panel="llm-config" id="llmConfigPanel" role="tabpanel">
+              <div class="panel-grid two llm-layout">
+                <div class="panel-card config-card">
+                  <div class="card-head">
+                    <div><span class="card-kicker">LLM</span><h3>大模型配置</h3></div>
+                    <span class="badge badge-config">settings</span>
+                  </div>
+                  <form class="config-form" id="llmConfigForm">
+                    <div class="form-group">
+                      <label for="llmProvider">LLM 厂商</label>
+                      <select id="llmProvider" name="provider">
+                        <option value="openai">OpenAI (GPT-4)</option>
+                        <option value="claude">Claude (Anthropic)</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="ollama">Ollama (本地)</option>
+                      </select>
+                    </div>
+                    <div class="form-group" id="apiKeyGroup">
+                      <label for="llmApiKey">API 密钥</label>
+                      <input id="llmApiKey" type="password" name="apiKey" placeholder="sk-..." autocomplete="off">
+                      <small>不会保存到云端，仅存储在本地浏览器</small>
+                    </div>
+                    <div class="form-group" id="baseUrlGroup" style="display:none;">
+                      <label for="llmBaseUrl">服务地址</label>
+                      <input id="llmBaseUrl" type="text" name="baseUrl" placeholder="http://localhost:11434">
+                    </div>
+                    <div class="form-group">
+                      <label for="llmModel">模型</label>
+                      <input id="llmModel" type="text" name="model" placeholder="gpt-4" value="gpt-4">
+                    </div>
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label for="llmTemp">温度</label>
+                        <input id="llmTemp" type="number" name="temperature" min="0" max="1" step="0.1" value="0.7">
+                      </div>
+                      <div class="form-group">
+                        <label for="llmMaxTokens">最大 token</label>
+                        <input id="llmMaxTokens" type="number" name="maxTokens" min="100" max="10000" step="100" value="2000">
+                      </div>
+                    </div>
+                    <div class="form-actions">
+                      <button type="submit" class="btn btn-primary">保存配置</button>
+                      <button type="button" class="btn btn-ghost" id="testLlmBtn">测试连接</button>
+                    </div>
+                  </form>
+                  <div id="llmConfigStatus" class="config-status"></div>
+                </div>
+                <div class="panel-card info-card">
+                  <div class="card-head">
+                    <div><span class="card-kicker">INFO</span><h3>配置说明</h3></div>
+                  </div>
+                  <div class="info-content">
+                    <h4>支持的 LLM 厂商</h4>
+                    <dl>
+                      <dt>OpenAI</dt>
+                      <dd>推荐使用 GPT-4。需要在 <a href="https://platform.openai.com" target="_blank">platform.openai.com</a> 获取 API 密钥。</dd>
+                      
+                      <dt>Claude</dt>
+                      <dd>推荐使用 Claude 3.5 Sonnet。在 <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 创建密钥。</dd>
+                      
+                      <dt>Google Gemini</dt>
+                      <dd>使用 Gemini 2.0 Flash。在 <a href="https://ai.google.dev" target="_blank">ai.google.dev</a> 获取免费密钥。</dd>
+                      
+                      <dt>Ollama</dt>
+                      <dd>本地运行，无需 API 密钥。<code>ollama pull neural-chat</code></dd>
+                    </dl>
+                    <h4>工具系统</h4>
+                    <p>Agent 可调用的工具包括：</p>
+                    <ul>
+                      <li><code>search_structures</code> - 晶体结构检索</li>
+                      <li><code>generate_structures</code> - CSP/DNG 生成</li>
+                      <li><code>simulate_xrd</code> - XRD 模拟</li>
+                      <li><code>identify_phases</code> - 物相识别</li>
+                      <li><code>run_refinement</code> - Rietveld 精修</li>
+                      <li><code>recommend_synthesis</code> - 合成设计</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section class="tab-panel" data-panel="agent" id="agentPanel" role="tabpanel">
               <div class="panel-grid two agent-layout">
                 <div class="panel-card chat-card">
@@ -913,6 +994,8 @@ console.log(data.tool_calls, data.citations);</code></pre>
   <script src="assets/js/api/mock.js"></script>
   <script src="assets/js/api/crystalseek.js"></script>
   <script src="assets/js/api/client.js"></script>
+  <script src="assets/js/api/llm.js"></script>
+  <script src="assets/js/api/agent.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
